@@ -78,17 +78,46 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
   Future<void> _openInSpotify() async {
     if (_playlist == null) return;
 
-    final uri = Uri.parse('spotify:playlist:${_playlist!.id}');
+    final appUrl = Uri.parse('spotify:playlist:${_playlist!.id}');
     final webUrl =
         Uri.parse('https://open.spotify.com/playlist/${_playlist!.id}');
 
-    // Try to open in Spotify app first
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else if (await canLaunchUrl(webUrl)) {
-      // Fallback to web player
-      await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+    // Try to open in Spotify app first, then fall back to the browser if needed
+    try {
+      if (await canLaunchUrl(appUrl)) {
+        final launched = await launchUrl(
+          appUrl,
+          mode: LaunchMode.externalNonBrowserApplication,
+        );
+
+        if (launched) {
+          return;
+        }
+      }
+
+      if (await canLaunchUrl(webUrl)) {
+        final launched = await launchUrl(
+          webUrl,
+          mode: LaunchMode.externalApplication,
+        );
+
+        if (launched) {
+          return;
+        }
+      }
+    } catch (_) {
+      // Fall through to the snackbar below.
     }
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('No app available to open the playlist.'),
+      ),
+    );
   }
 
   @override
