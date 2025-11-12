@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:uni_links/uni_links.dart';
+import 'package:app_links/app_links.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/spotify_service.dart';
 import '../core/utils/logger.dart';
@@ -15,6 +15,7 @@ class SpotifyAuthScreen extends StatefulWidget {
 
 class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
   final _spotifyService = SpotifyService.instance;
+  final _appLinks = AppLinks();
   StreamSubscription? _linkSubscription;
 
   bool _isLoading = false;
@@ -43,10 +44,8 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
 
   void _initDeepLinkListener() {
     // Listen for deep link callbacks
-    _linkSubscription = uriLinkStream.listen((Uri? uri) {
-      if (uri != null) {
-        _handleDeepLink(uri);
-      }
+    _linkSubscription = _appLinks.uriLinkStream.listen((Uri uri) {
+      _handleDeepLink(uri);
     }, onError: (err) {
       Logger.error('Deep link error', err);
     });
