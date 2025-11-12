@@ -47,10 +47,11 @@ dependencies:
   # Environment variables
   flutter_dotenv: ^5.1.0
   
-  # Analytics (optional)
-  firebase_core: ^2.24.2
-  firebase_analytics: ^10.8.0
-  firebase_crashlytics: ^3.4.9
+  # Analytics (optional - commented out to fix iOS build issues)
+  # Uncomment and run 'flutter pub get' if you want to use Firebase
+  # firebase_core: ^2.24.2
+  # firebase_analytics: ^10.8.0
+  # firebase_crashlytics: ^3.4.9
   
   # Icons
   cupertino_icons: ^1.0.6
