@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_appauth/flutter_appauth.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:uni_links/uni_links.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/spotify_service.dart';
 import '../core/utils/logger.dart';
@@ -12,8 +14,8 @@ class SpotifyAuthScreen extends StatefulWidget {
 }
 
 class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
-  final _appAuth = const FlutterAppAuth();
   final _spotifyService = SpotifyService.instance;
+  StreamSubscription? _linkSubscription;
 
   bool _isLoading = false;
   String? _error;
@@ -25,12 +27,78 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
 
   static const String authorizationEndpoint =
       'https://accounts.spotify.com/authorize';
-  static const String tokenEndpoint = 'https://accounts.spotify.com/api/token';
 
   @override
   void initState() {
     super.initState();
     _checkAuthentication();
+    _initDeepLinkListener();
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _initDeepLinkListener() {
+    // Listen for deep link callbacks
+    _linkSubscription = uriLinkStream.listen((Uri? uri) {
+      if (uri != null) {
+        _handleDeepLink(uri);
+      }
+    }, onError: (err) {
+      Logger.error('Deep link error', err);
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    Logger.info('Received deep link: $uri');
+
+    // Extract access token from URI fragment (implicit grant flow)
+    // Format: vibelens://callback#access_token=...&token_type=Bearer&expires_in=3600
+    final fragment = uri.fragment;
+    
+    if (fragment.isNotEmpty) {
+      final params = Uri.splitQueryString(fragment);
+      final accessToken = params['access_token'];
+      final expiresIn = int.tryParse(params['expires_in'] ?? '3600') ?? 3600;
+
+      if (accessToken != null && accessToken.isNotEmpty) {
+        Logger.success('Access token received from deep link');
+        _saveTokenAndReturn(accessToken, expiresIn);
+      } else {
+        Logger.error('No access token in deep link');
+        setState(() {
+          _error = 'Authentication failed: No access token received';
+          _isLoading = false;
+        });
+      }
+    } else if (uri.queryParameters.containsKey('error')) {
+      final error = uri.queryParameters['error'];
+      Logger.error('OAuth error: $error');
+      setState(() {
+        _error = 'Authentication failed: $error';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _saveTokenAndReturn(String accessToken, int expiresIn) async {
+    try {
+      await _spotifyService.saveToken(accessToken, expiresIn);
+      Logger.success('Spotify authentication successful');
+
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      Logger.error('Failed to save token', e);
+      setState(() {
+        _error = 'Failed to save authentication';
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _checkAuthentication() async {
@@ -71,77 +139,36 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
           'Starting Spotify authentication with Client ID: ${clientId.substring(0, 8)}...');
       Logger.info('Using redirect URI: $redirectUri');
 
-      // Try authorization only first - this should work better on Android
-      final AuthorizationResponse? authResponse = await _appAuth.authorize(
-        AuthorizationRequest(
-          clientId,
-          redirectUri,
-          serviceConfiguration: const AuthorizationServiceConfiguration(
-            authorizationEndpoint: authorizationEndpoint,
-            tokenEndpoint: tokenEndpoint,
-          ),
-          scopes: [
-            'playlist-modify-public',
-            'playlist-modify-private',
-            'user-read-private',
-            'user-read-email',
-          ],
-          additionalParameters: {
-            'show_dialog': 'true',
-          },
-        ),
+      // Build Spotify authorization URL with implicit grant flow
+      final scopes = [
+        'playlist-modify-public',
+        'playlist-modify-private',
+        'user-read-private',
+        'user-read-email',
+      ].join('%20');
+
+      final authUrl = Uri.parse(
+        '$authorizationEndpoint?'
+        'client_id=$clientId&'
+        'response_type=token&'
+        'redirect_uri=${Uri.encodeComponent(redirectUri)}&'
+        'scope=$scopes&'
+        'show_dialog=true',
       );
 
-      Logger.info('Authorization response received');
+      Logger.info('Opening auth URL: ${authUrl.toString().substring(0, 100)}...');
 
-      if (authResponse != null && authResponse.authorizationCode != null) {
-        Logger.info('Got authorization code, exchanging for token...');
-        
-        // Manually exchange the code for a token
-        final TokenResponse? tokenResponse = await _appAuth.token(
-          TokenRequest(
-            clientId,
-            redirectUri,
-            authorizationCode: authResponse.authorizationCode,
-            serviceConfiguration: const AuthorizationServiceConfiguration(
-              authorizationEndpoint: authorizationEndpoint,
-              tokenEndpoint: tokenEndpoint,
-            ),
-          ),
-        );
+      // Launch Spotify authorization page
+      final launched = await launchUrl(
+        authUrl,
+        mode: LaunchMode.externalApplication,
+      );
 
-        if (tokenResponse != null && tokenResponse.accessToken != null) {
-          Logger.success('Access token received: ${tokenResponse.accessToken?.substring(0, 10)}...');
-          
-          // Save token
-          await _spotifyService.saveToken(
-            tokenResponse.accessToken!,
-            tokenResponse.accessTokenExpirationDateTime
-                    ?.difference(DateTime.now())
-                    .inSeconds ??
-                3600,
-          );
-
-          Logger.success('Spotify authentication successful');
-
-          if (mounted) {
-            // Success - return to previous screen
-            Navigator.pop(context, true);
-          }
-        } else {
-          Logger.error('No access token in token response');
-          setState(() {
-            _error = 'Authentication failed: No access token received';
-            _isLoading = false;
-          });
-        }
-      } else {
-        Logger.error('No authorization code received');
-        setState(() {
-          _error = 'Authentication failed: No authorization code received';
-          _isLoading = false;
-        });
+      if (!launched) {
+        throw Exception('Could not launch Spotify authorization URL');
       }
+
+      Logger.info('Auth URL launched, waiting for callback...');
     } catch (e) {
       Logger.error('Spotify authentication failed', e);
       setState(() {
