@@ -43,8 +43,10 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
 
   Future<void> _authenticate() async {
     // Debug: Log what we're loading from .env
-    Logger.info('SPOTIFY_CLIENT_ID from .env: ${dotenv.env['SPOTIFY_CLIENT_ID']}');
-    Logger.info('SPOTIFY_REDIRECT_URI from .env: ${dotenv.env['SPOTIFY_REDIRECT_URI']}');
+    Logger.info(
+        'SPOTIFY_CLIENT_ID from .env: ${dotenv.env['SPOTIFY_CLIENT_ID']}');
+    Logger.info(
+        'SPOTIFY_REDIRECT_URI from .env: ${dotenv.env['SPOTIFY_REDIRECT_URI']}');
     Logger.info('Computed clientId: $clientId');
     Logger.info('Computed redirectUri: $redirectUri');
 

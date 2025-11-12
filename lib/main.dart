@@ -25,11 +25,12 @@ void main() async {
     // Load environment variables (use .env if exists, otherwise .env.example)
     try {
       await dotenv.load();
+      Logger.success('Environment variables loaded from .env');
     } catch (e) {
       Logger.warning('.env not found, loading .env.example');
       await dotenv.load(fileName: '.env.example');
+      Logger.warning('Using .env.example - create .env file with your actual credentials');
     }
-    Logger.success('Environment variables loaded');
 
     // Lock orientation to portrait
     await SystemChrome.setPreferredOrientations([
