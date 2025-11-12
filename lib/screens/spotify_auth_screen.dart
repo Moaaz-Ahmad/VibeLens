@@ -42,10 +42,17 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
   }
 
   Future<void> _authenticate() async {
+    // Debug: Log what we're loading from .env
+    Logger.info('SPOTIFY_CLIENT_ID from .env: ${dotenv.env['SPOTIFY_CLIENT_ID']}');
+    Logger.info('SPOTIFY_REDIRECT_URI from .env: ${dotenv.env['SPOTIFY_REDIRECT_URI']}');
+    Logger.info('Computed clientId: $clientId');
+    Logger.info('Computed redirectUri: $redirectUri');
+
     // Check if client ID is configured
     if (clientId.isEmpty || clientId == 'your_client_id_here') {
       setState(() {
-        _error = 'Spotify Client ID not configured. Please add SPOTIFY_CLIENT_ID to .env file.';
+        _error =
+            'Spotify Client ID not configured. Please add SPOTIFY_CLIENT_ID to .env file.';
         _isLoading = false;
       });
       Logger.error('Spotify Client ID not configured');
@@ -58,8 +65,10 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
     });
 
     try {
-      Logger.info('Starting Spotify authentication with Client ID: ${clientId.substring(0, 8)}...');
-      
+      Logger.info(
+          'Starting Spotify authentication with Client ID: ${clientId.substring(0, 8)}...');
+      Logger.info('Using redirect URI: $redirectUri');
+
       // Perform OAuth authorization
       final result = await _appAuth.authorizeAndExchangeCode(
         AuthorizationTokenRequest(
