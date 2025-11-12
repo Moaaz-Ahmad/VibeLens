@@ -11,8 +11,10 @@ import 'screens/results_screen.dart';
 import 'screens/playlist_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/spotify_auth_screen.dart';
+import 'screens/history_screen.dart';
 import 'services/model_service.dart';
 import 'services/camera_service.dart';
+import 'services/history_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +42,7 @@ void main() async {
     await Future.wait([
       ModelService.instance.initialize(),
       CameraService.instance.initialize(),
+      HistoryService.instance.initialize(),
     ]);
     Logger.success('All services initialized');
 
@@ -68,6 +71,7 @@ class VibeLensApp extends StatelessWidget {
         '/playlist': (context) => const PlaylistScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/spotify-auth': (context) => const SpotifyAuthScreen(),
+        '/history': (context) => const HistoryScreen(),
       },
     );
   }

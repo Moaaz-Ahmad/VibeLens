@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/mood_result.dart';
+import '../services/history_service.dart';
 import '../widgets/animated_mood_background.dart';
 
 class ResultsScreen extends StatefulWidget {
@@ -11,6 +12,7 @@ class ResultsScreen extends StatefulWidget {
 
 class _ResultsScreenState extends State<ResultsScreen>
     with SingleTickerProviderStateMixin {
+  final _historyService = HistoryService.instance;
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
@@ -38,6 +40,14 @@ class _ResultsScreenState extends State<ResultsScreen>
     );
 
     _controller.forward();
+
+    // Save mood detection to history
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final result = ModalRoute.of(context)?.settings.arguments as MoodResult?;
+      if (result != null) {
+        await _historyService.saveMoodDetection(result);
+      }
+    });
   }
 
   @override

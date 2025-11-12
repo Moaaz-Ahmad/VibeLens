@@ -281,17 +281,37 @@ class _CameraScreenState extends State<CameraScreen>
                 tween: Tween(begin: 0.0, end: 1.0),
                 duration: const Duration(milliseconds: 300),
                 builder: (context, value, child) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: IconButton(
-                      icon: Icon(_getFlashIcon()),
-                      color: Colors.white,
-                      iconSize: 28,
-                      onPressed: _toggleFlash,
-                    ),
+                  return Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.history),
+                          color: Colors.white,
+                          iconSize: 28,
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/history'),
+                          tooltip: 'Mood History',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: IconButton(
+                          icon: Icon(_getFlashIcon()),
+                          color: Colors.white,
+                          iconSize: 28,
+                          onPressed: _toggleFlash,
+                          tooltip: 'Flash',
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
