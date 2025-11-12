@@ -1,0 +1,108 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# API Keys (never commit these!)
+**/google-services.json
+**/GoogleService-Info.plist
+lib/config/api_keys.dart
+
+# ML models and data
+ml/data/raw/
+ml/data/processed/
+ml/checkpoints/
+ml/logs/
+ml/wandb/
+ml/.ipynb_checkpoints/
+*.h5
+*.pb
+*.onnx
+*.pth
+*.pt
+
+# TFLite models (except final committed ones)
+assets/models/*.tflite
+!assets/models/vibelens_v*.tflite
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Jupyter
+.ipynb_checkpoints
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Coverage
+coverage/
+*.lcov
+
+# Firebase
+.firebase/
+firebase-debug.log
+
+# Generated files
+*.g.dart
+*.freezed.dart
+*.mocks.dart

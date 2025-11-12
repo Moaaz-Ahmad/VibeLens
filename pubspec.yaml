@@ -1,0 +1,85 @@
+name: vibelens
+description: AI Mood Playlist Generator - Point your camera at a scene and get a perfect playlist
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  flutter_riverpod: ^2.4.9
+  
+  # Camera & Image
+  camera: ^0.10.5+7
+  image_picker: ^1.0.7
+  image: ^4.1.4
+  
+  # TensorFlow Lite
+  tflite_flutter: ^0.11.0
+  
+  # HTTP & API
+  http: ^1.1.2
+  dio: ^5.4.0
+  
+  # Authentication
+  flutter_appauth: ^6.0.4
+  flutter_secure_storage: ^9.0.0
+  
+  # Media Playback
+  url_launcher: ^6.2.2
+  webview_flutter: ^4.4.4
+  
+  # UI Components
+  flutter_animate: ^4.3.0
+  shimmer: ^3.0.0
+  cached_network_image: ^3.3.1
+  
+  # Utilities
+  path_provider: ^2.1.2
+  shared_preferences: ^2.2.2
+  intl: ^0.19.0
+  uuid: ^4.3.3
+  
+  # Environment variables
+  flutter_dotenv: ^5.1.0
+  
+  # Analytics (optional)
+  firebase_core: ^2.24.2
+  firebase_analytics: ^10.8.0
+  firebase_crashlytics: ^3.4.9
+  
+  # Icons
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.7
+  mockito: ^5.4.4
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/models/
+    - assets/images/
+    - .env
+  
+  # fonts:
+  #   - family: Inter
+  #     fonts:
+  #       - asset: assets/fonts/Inter-Regular.ttf
+  #       - asset: assets/fonts/Inter-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/Inter-SemiBold.ttf
+  #         weight: 600
+  #       - asset: assets/fonts/Inter-Bold.ttf
+  #         weight: 700
