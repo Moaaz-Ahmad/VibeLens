@@ -144,9 +144,8 @@ class HistoryService {
     if (historyJson != null) {
       try {
         final List<dynamic> decoded = json.decode(historyJson);
-        _cachedHistory = decoded
-            .map((item) => MoodHistoryEntry.fromJson(item))
-            .toList();
+        _cachedHistory =
+            decoded.map((item) => MoodHistoryEntry.fromJson(item)).toList();
         Logger.info('Loaded ${_cachedHistory.length} history entries');
       } catch (e) {
         Logger.error('Failed to decode history', e);

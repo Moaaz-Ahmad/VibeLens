@@ -398,9 +398,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               const SizedBox(height: 8),
               ...MoodLabel.values.map((mood) {
                 final count = distribution[mood] ?? 0;
-                final percentage = _history.isEmpty
-                    ? 0.0
-                    : (count / _history.length * 100);
+                final percentage =
+                    _history.isEmpty ? 0.0 : (count / _history.length * 100);
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
