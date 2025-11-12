@@ -221,7 +221,9 @@ class _ResultsScreenState extends State<ResultsScreen>
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
                               side: const BorderSide(
-                                  color: Colors.white, width: 2),
+                                color: Colors.white,
+                                width: 2,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(28),
                               ),

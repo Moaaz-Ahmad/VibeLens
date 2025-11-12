@@ -45,10 +45,8 @@ class AppTheme {
   /// Light Theme (for future use)
   static ThemeData get lightTheme => ThemeData(
         useMaterial3: true,
-        brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
           seedColor: primaryColor,
-          brightness: Brightness.light,
         ),
         // fontFamily: 'Inter', // Commented out - using system default fonts
       );

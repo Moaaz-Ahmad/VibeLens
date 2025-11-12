@@ -424,8 +424,10 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                             color: Colors.grey.shade800,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.music_note,
-                              color: Colors.white54),
+                          child: const Icon(
+                            Icons.music_note,
+                            color: Colors.white54,
+                          ),
                         );
                       },
                     ),

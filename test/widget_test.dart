@@ -66,14 +66,17 @@ void main() {
     });
 
     test('mood labels are correct', () {
-      expect(AppConstants.moodLabels, [
-        'Cozy',
-        'Energetic',
-        'Melancholic',
-        'Calm',
-        'Nostalgic',
-        'Romantic'
-      ]);
+      expect(
+        AppConstants.moodLabels,
+        [
+          'Cozy',
+          'Energetic',
+          'Melancholic',
+          'Calm',
+          'Nostalgic',
+          'Romantic',
+        ],
+      );
     });
 
     test('has 6 mood emojis', () {
@@ -97,10 +100,14 @@ void main() {
     });
 
     test('animation durations are reasonable', () {
-      expect(AppConstants.shortAnimation.inMilliseconds,
-          greaterThanOrEqualTo(100));
       expect(
-          AppConstants.longAnimation.inMilliseconds, lessThanOrEqualTo(1000));
+        AppConstants.shortAnimation.inMilliseconds,
+        greaterThanOrEqualTo(100),
+      );
+      expect(
+        AppConstants.longAnimation.inMilliseconds,
+        lessThanOrEqualTo(1000),
+      );
     });
   });
 
