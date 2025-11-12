@@ -71,9 +71,9 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
           'Starting Spotify authentication with Client ID: ${clientId.substring(0, 8)}...');
       Logger.info('Using redirect URI: $redirectUri');
 
-      // Perform OAuth authorization with PKCE
-      final result = await _appAuth.authorizeAndExchangeCode(
-        AuthorizationTokenRequest(
+      // Try authorization only first - this should work better on Android
+      final AuthorizationResponse? authResponse = await _appAuth.authorize(
+        AuthorizationRequest(
           clientId,
           redirectUri,
           serviceConfiguration: const AuthorizationServiceConfiguration(
@@ -86,31 +86,61 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
             'user-read-private',
             'user-read-email',
           ],
-          // Additional parameters for better compatibility
           additionalParameters: {
             'show_dialog': 'true',
           },
-          // Ensure we use PKCE
-          promptValues: ['login'],
         ),
       );
 
-      if (result != null && result.accessToken != null) {
-        // Save token
-        await _spotifyService.saveToken(
-          result.accessToken!,
-          result.accessTokenExpirationDateTime
-                  ?.difference(DateTime.now())
-                  .inSeconds ??
-              3600,
+      Logger.info('Authorization response received');
+
+      if (authResponse != null && authResponse.authorizationCode != null) {
+        Logger.info('Got authorization code, exchanging for token...');
+        
+        // Manually exchange the code for a token
+        final TokenResponse? tokenResponse = await _appAuth.token(
+          TokenRequest(
+            clientId,
+            redirectUri,
+            authorizationCode: authResponse.authorizationCode,
+            serviceConfiguration: const AuthorizationServiceConfiguration(
+              authorizationEndpoint: authorizationEndpoint,
+              tokenEndpoint: tokenEndpoint,
+            ),
+          ),
         );
 
-        Logger.success('Spotify authentication successful');
+        if (tokenResponse != null && tokenResponse.accessToken != null) {
+          Logger.success('Access token received: ${tokenResponse.accessToken?.substring(0, 10)}...');
+          
+          // Save token
+          await _spotifyService.saveToken(
+            tokenResponse.accessToken!,
+            tokenResponse.accessTokenExpirationDateTime
+                    ?.difference(DateTime.now())
+                    .inSeconds ??
+                3600,
+          );
 
-        if (mounted) {
-          // Success - return to previous screen
-          Navigator.pop(context, true);
+          Logger.success('Spotify authentication successful');
+
+          if (mounted) {
+            // Success - return to previous screen
+            Navigator.pop(context, true);
+          }
+        } else {
+          Logger.error('No access token in token response');
+          setState(() {
+            _error = 'Authentication failed: No access token received';
+            _isLoading = false;
+          });
         }
+      } else {
+        Logger.error('No authorization code received');
+        setState(() {
+          _error = 'Authentication failed: No authorization code received';
+          _isLoading = false;
+        });
       }
     } catch (e) {
       Logger.error('Spotify authentication failed', e);

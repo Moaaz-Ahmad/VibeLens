@@ -29,7 +29,8 @@ void main() async {
     } catch (e) {
       Logger.warning('.env not found, loading .env.example');
       await dotenv.load(fileName: '.env.example');
-      Logger.warning('Using .env.example - create .env file with your actual credentials');
+      Logger.warning(
+          'Using .env.example - create .env file with your actual credentials');
     }
 
     // Lock orientation to portrait
