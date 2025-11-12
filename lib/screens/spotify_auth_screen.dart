@@ -71,7 +71,7 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
           'Starting Spotify authentication with Client ID: ${clientId.substring(0, 8)}...');
       Logger.info('Using redirect URI: $redirectUri');
 
-      // Perform OAuth authorization
+      // Perform OAuth authorization with PKCE
       final result = await _appAuth.authorizeAndExchangeCode(
         AuthorizationTokenRequest(
           clientId,
@@ -86,6 +86,12 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
             'user-read-private',
             'user-read-email',
           ],
+          // Additional parameters for better compatibility
+          additionalParameters: {
+            'show_dialog': 'true',
+          },
+          // Ensure we use PKCE
+          promptValues: ['login'],
         ),
       );
 
