@@ -20,8 +20,13 @@ void main() async {
   Logger.info('🚀 Starting VibeLens...');
 
   try {
-    // Load environment variables
-    await dotenv.load();
+    // Load environment variables (use .env if exists, otherwise .env.example)
+    try {
+      await dotenv.load();
+    } catch (e) {
+      Logger.warning('.env not found, loading .env.example');
+      await dotenv.load(fileName: '.env.example');
+    }
     Logger.success('Environment variables loaded');
 
     // Lock orientation to portrait

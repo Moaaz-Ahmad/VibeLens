@@ -71,7 +71,7 @@ flutter:
   assets:
     - assets/models/
     - assets/images/
-    - .env
+    - .env.example
   
   # fonts:
   #   - family: Inter
