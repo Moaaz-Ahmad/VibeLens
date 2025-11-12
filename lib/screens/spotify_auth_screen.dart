@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_appauth/flutter_appauth.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/spotify_service.dart';
+import '../core/utils/logger.dart';
 
 class SpotifyAuthScreen extends StatefulWidget {
   const SpotifyAuthScreen({super.key});
@@ -16,12 +18,11 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
   bool _isLoading = false;
   String? _error;
 
-  // TODO: Replace with your Spotify credentials from .env
-  static const String clientId = String.fromEnvironment(
-    'SPOTIFY_CLIENT_ID',
-    defaultValue: 'YOUR_SPOTIFY_CLIENT_ID',
-  );
-  static const String redirectUri = 'vibelens://callback';
+  // Load Spotify credentials from .env file
+  String get clientId => dotenv.env['SPOTIFY_CLIENT_ID'] ?? '';
+  String get redirectUri =>
+      dotenv.env['SPOTIFY_REDIRECT_URI'] ?? 'vibelens://callback';
+
   static const String authorizationEndpoint =
       'https://accounts.spotify.com/authorize';
   static const String tokenEndpoint = 'https://accounts.spotify.com/api/token';
@@ -41,12 +42,24 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
   }
 
   Future<void> _authenticate() async {
+    // Check if client ID is configured
+    if (clientId.isEmpty || clientId == 'your_client_id_here') {
+      setState(() {
+        _error = 'Spotify Client ID not configured. Please add SPOTIFY_CLIENT_ID to .env file.';
+        _isLoading = false;
+      });
+      Logger.error('Spotify Client ID not configured');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
+      Logger.info('Starting Spotify authentication with Client ID: ${clientId.substring(0, 8)}...');
+      
       // Perform OAuth authorization
       final result = await _appAuth.authorizeAndExchangeCode(
         AuthorizationTokenRequest(
@@ -75,12 +88,15 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
               3600,
         );
 
+        Logger.success('Spotify authentication successful');
+
         if (mounted) {
           // Success - return to previous screen
           Navigator.pop(context, true);
         }
       }
     } catch (e) {
+      Logger.error('Spotify authentication failed', e);
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -159,14 +175,16 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.red),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.error_outline, color: Colors.red),
-                        SizedBox(width: 12),
+                        const Icon(Icons.error_outline, color: Colors.red),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Authentication failed. Please try again.',
-                            style: TextStyle(color: Colors.white),
+                            _error!.contains('SPOTIFY_CLIENT_ID')
+                                ? _error!
+                                : 'Authentication failed. Please check your Spotify Client ID and try again.',
+                            style: const TextStyle(color: Colors.white),
                           ),
                         ),
                       ],
