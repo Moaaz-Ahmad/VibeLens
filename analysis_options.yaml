@@ -26,3 +26,5 @@ analyzer:
     - "**/*.mocks.dart"
   errors:
     invalid_annotation_target: ignore
+    # .env is optional; we fall back to .env.example so the missing asset info is benign
+    asset_does_not_exist: ignore
