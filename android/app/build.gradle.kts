@@ -29,8 +29,8 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         
-        // Required for flutter_appauth (Spotify OAuth)
-        manifestPlaceholders["appAuthRedirectScheme"] = "vibelens"
+    // Placeholder to ensure deep links work for Spotify OAuth callback
+    manifestPlaceholders["appAuthRedirectScheme"] = "vibelens"
     }
 
     buildTypes {

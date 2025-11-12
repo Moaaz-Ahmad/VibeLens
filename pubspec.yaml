@@ -25,10 +25,10 @@ dependencies:
   http: ^1.1.2
   dio: ^5.4.0
   
-  # Authentication
-  flutter_appauth: ^6.0.4
+  # Authentication & OAuth helpers
   flutter_secure_storage: ^9.0.0
   app_links: ^6.3.2
+  crypto: ^3.0.3
   
   # Media Playback
   url_launcher: ^6.2.2

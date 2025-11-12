@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:app_links/app_links.dart';
+import 'package:crypto/crypto.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/spotify_service.dart';
 import '../core/utils/logger.dart';
@@ -16,18 +20,23 @@ class SpotifyAuthScreen extends StatefulWidget {
 class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
   final _spotifyService = SpotifyService.instance;
   final _appLinks = AppLinks();
-  StreamSubscription? _linkSubscription;
+  final Random _random = Random.secure();
+  StreamSubscription<Uri>? _linkSubscription;
 
   bool _isLoading = false;
+  bool _hasHandledDeepLink = false;
   String? _error;
+  String? _codeVerifier;
+  String? _state;
 
   // Load Spotify credentials from .env file
   String get clientId => dotenv.env['SPOTIFY_CLIENT_ID'] ?? '';
   String get redirectUri =>
       dotenv.env['SPOTIFY_REDIRECT_URI'] ?? 'vibelens://callback';
 
-  static const String authorizationEndpoint =
-      'https://accounts.spotify.com/authorize';
+  static const String _authorizationHost = 'accounts.spotify.com';
+  static const String _authorizationPath = '/authorize';
+  static const String _tokenEndpoint = 'https://accounts.spotify.com/api/token';
 
   @override
   void initState() {
@@ -43,44 +52,153 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
   }
 
   void _initDeepLinkListener() {
-    // Listen for deep link callbacks
-    _linkSubscription = _appLinks.uriLinkStream.listen((Uri uri) {
-      _handleDeepLink(uri);
-    }, onError: (err) {
-      Logger.error('Deep link error', err);
+    _linkSubscription = _appLinks.uriLinkStream.listen(
+      (Uri uri) => _handleDeepLink(uri),
+      onError: (err) => Logger.error('Deep link error', err),
+    );
+
+    // Handle case where the app was opened by a deep link while terminated
+    _appLinks.getInitialLink().then((uri) {
+      if (uri != null) {
+        _handleDeepLink(uri);
+      }
+    }).catchError((err) {
+      Logger.error('Failed to retrieve initial deep link', err);
     });
   }
 
   void _handleDeepLink(Uri uri) {
     Logger.info('Received deep link: $uri');
 
-    // Extract access token from URI fragment (implicit grant flow)
-    // Format: vibelens://callback#access_token=...&token_type=Bearer&expires_in=3600
-    final fragment = uri.fragment;
-    
-    if (fragment.isNotEmpty) {
-      final params = Uri.splitQueryString(fragment);
-      final accessToken = params['access_token'];
-      final expiresIn = int.tryParse(params['expires_in'] ?? '3600') ?? 3600;
+    if (_hasHandledDeepLink) {
+      Logger.warning('Deep link already processed, ignoring');
+      return;
+    }
 
-      if (accessToken != null && accessToken.isNotEmpty) {
-        Logger.success('Access token received from deep link');
-        _saveTokenAndReturn(accessToken, expiresIn);
-      } else {
-        Logger.error('No access token in deep link');
-        setState(() {
-          _error = 'Authentication failed: No access token received';
-          _isLoading = false;
-        });
-      }
-    } else if (uri.queryParameters.containsKey('error')) {
-      final error = uri.queryParameters['error'];
+    final error = uri.queryParameters['error'];
+    if (error != null) {
       Logger.error('OAuth error: $error');
       setState(() {
         _error = 'Authentication failed: $error';
         _isLoading = false;
       });
+      return;
     }
+
+    final returnedState = uri.queryParameters['state'];
+    if (_state != null && returnedState != _state) {
+      Logger.error('State mismatch during OAuth callback');
+      setState(() {
+        _error = 'Authentication failed: State mismatch. Please try again.';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    final code = uri.queryParameters['code'];
+    if (code != null && code.isNotEmpty) {
+      _hasHandledDeepLink = true;
+      Logger.info('Authorization code received, exchanging for token');
+      _exchangeCodeForToken(code);
+    } else {
+      Logger.error('No authorization code found in callback');
+      setState(() {
+        _error = 'Authentication failed: No authorization code received.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _exchangeCodeForToken(String code) async {
+    final verifier = _codeVerifier;
+    if (verifier == null) {
+      Logger.error('Code verifier missing during token exchange');
+      setState(() {
+        _error =
+            'Authentication failed: Missing code verifier. Please try again.';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse(_tokenEndpoint),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'client_id': clientId,
+          'grant_type': 'authorization_code',
+          'code': code,
+          'redirect_uri': redirectUri,
+          'code_verifier': verifier,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data =
+            jsonDecode(response.body) as Map<String, dynamic>;
+        final accessToken = data['access_token'] as String?;
+        final expiresInValue = data['expires_in'];
+        final expiresIn = expiresInValue is int
+            ? expiresInValue
+            : int.tryParse(expiresInValue?.toString() ?? '') ?? 3600;
+
+        if (accessToken != null && accessToken.isNotEmpty) {
+          Logger.success('Access token obtained from Spotify');
+          await _saveTokenAndReturn(accessToken, expiresIn);
+        } else {
+          Logger.error(
+            'Access token missing in token response: ${response.body}',
+          );
+          setState(() {
+            _error = 'Authentication failed: Access token missing in response.';
+            _isLoading = false;
+          });
+        }
+      } else {
+        Logger.error(
+          'Token exchange failed (${response.statusCode}): ${response.body}',
+        );
+        setState(() {
+          _error = 'Authentication failed: Unable to retrieve access token.';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      Logger.error('Token exchange error', e);
+      setState(() {
+        _error = 'Authentication failed: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _generateCodeVerifier() {
+    const charset =
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+    return List.generate(64, (_) => charset[_random.nextInt(charset.length)])
+        .join();
+  }
+
+  String _generateCodeChallenge(String verifier) {
+    final bytes = utf8.encode(verifier);
+    final digest = sha256.convert(bytes);
+    return _base64UrlEncode(digest.bytes);
+  }
+
+  String _generateRandomString(int length) {
+    const charset =
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    return List.generate(
+      length,
+      (_) => charset[_random.nextInt(charset.length)],
+    ).join();
+  }
+
+  String _base64UrlEncode(List<int> bytes) {
+    return base64UrlEncode(bytes).replaceAll('=', '');
   }
 
   Future<void> _saveTokenAndReturn(String accessToken, int expiresIn) async {
@@ -89,6 +207,10 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
       Logger.success('Spotify authentication successful');
 
       if (mounted) {
+        _codeVerifier = null;
+        _state = null;
+        _hasHandledDeepLink = false;
+        setState(() => _isLoading = false);
         Navigator.pop(context, true);
       }
     } catch (e) {
@@ -111,9 +233,11 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
   Future<void> _authenticate() async {
     // Debug: Log what we're loading from .env
     Logger.info(
-        'SPOTIFY_CLIENT_ID from .env: ${dotenv.env['SPOTIFY_CLIENT_ID']}');
+      'SPOTIFY_CLIENT_ID from .env: ${dotenv.env['SPOTIFY_CLIENT_ID']}',
+    );
     Logger.info(
-        'SPOTIFY_REDIRECT_URI from .env: ${dotenv.env['SPOTIFY_REDIRECT_URI']}');
+      'SPOTIFY_REDIRECT_URI from .env: ${dotenv.env['SPOTIFY_REDIRECT_URI']}',
+    );
     Logger.info('Computed clientId: $clientId');
     Logger.info('Computed redirectUri: $redirectUri');
 
@@ -135,31 +259,42 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
 
     try {
       Logger.info(
-          'Starting Spotify authentication with Client ID: ${clientId.substring(0, 8)}...');
+        'Starting Spotify authentication with Client ID: ${clientId.substring(0, 8)}...',
+      );
       Logger.info('Using redirect URI: $redirectUri');
-
-      // Build Spotify authorization URL with implicit grant flow
-      final scopes = [
+      final scope = [
         'playlist-modify-public',
         'playlist-modify-private',
         'user-read-private',
         'user-read-email',
-      ].join('%20');
+      ].join(' ');
 
-      final authUrl = Uri.parse(
-        '$authorizationEndpoint?'
-        'client_id=$clientId&'
-        'response_type=token&'
-        'redirect_uri=${Uri.encodeComponent(redirectUri)}&'
-        'scope=$scopes&'
-        'show_dialog=true',
+      _codeVerifier = _generateCodeVerifier();
+      final codeChallenge = _generateCodeChallenge(_codeVerifier!);
+      _state = _generateRandomString(32);
+      _hasHandledDeepLink = false;
+
+      Logger.info('Generated PKCE challenge for OAuth flow');
+
+      final authUri = Uri.https(
+        _authorizationHost,
+        _authorizationPath,
+        {
+          'client_id': clientId,
+          'response_type': 'code',
+          'redirect_uri': redirectUri,
+          'code_challenge_method': 'S256',
+          'code_challenge': codeChallenge,
+          'scope': scope,
+          'state': _state,
+          'show_dialog': 'true',
+        },
       );
 
-      Logger.info('Opening auth URL: ${authUrl.toString().substring(0, 100)}...');
+      Logger.info('Opening auth URL: ${authUri.toString()}');
 
-      // Launch Spotify authorization page
       final launched = await launchUrl(
-        authUrl,
+        authUri,
         mode: LaunchMode.externalApplication,
       );
 
@@ -254,9 +389,7 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            _error!.contains('SPOTIFY_CLIENT_ID')
-                                ? _error!
-                                : 'Authentication failed. Please check your Spotify Client ID and try again.',
+                            _error!,
                             style: const TextStyle(color: Colors.white),
                           ),
                         ),
