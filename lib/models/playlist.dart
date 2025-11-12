@@ -31,14 +31,14 @@ class Track {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'artist': artist,
-    'albumArt': albumArt,
-    'previewUrl': previewUrl,
-    'spotifyUrl': spotifyUrl,
-    'durationMs': durationMs,
-  };
+        'id': id,
+        'name': name,
+        'artist': artist,
+        'albumArt': albumArt,
+        'previewUrl': previewUrl,
+        'spotifyUrl': spotifyUrl,
+        'durationMs': durationMs,
+      };
 }
 
 /// Playlist model
@@ -61,10 +61,10 @@ class Playlist {
       tracks.fold(0, (sum, track) => sum + track.durationMs);
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'tracks': tracks.map((t) => t.toJson()).toList(),
-    'coverImage': coverImage,
-    'createdAt': createdAt.toIso8601String(),
-  };
+        'id': id,
+        'name': name,
+        'tracks': tracks.map((t) => t.toJson()).toList(),
+        'coverImage': coverImage,
+        'createdAt': createdAt.toIso8601String(),
+      };
 }

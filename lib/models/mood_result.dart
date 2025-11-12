@@ -78,10 +78,10 @@ class MoodResult {
   });
 
   Map<String, dynamic> toJson() => {
-    'label': label.name,
-    'confidence': confidence,
-    'embedding': embedding,
-    'timestamp': timestamp.toIso8601String(),
-    'inferenceTimeMs': inferenceTimeMs,
-  };
+        'label': label.name,
+        'confidence': confidence,
+        'embedding': embedding,
+        'timestamp': timestamp.toIso8601String(),
+        'inferenceTimeMs': inferenceTimeMs,
+      };
 }
