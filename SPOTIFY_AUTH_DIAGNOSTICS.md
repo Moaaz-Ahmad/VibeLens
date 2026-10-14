@@ -1,15 +1,15 @@
 # Spotify Authentication Diagnostics
 
-## Current Status ✅
+## Current Status
 
 Good news! The app is now correctly:
-- ✅ Loading `.env` file (not `.env.example`)
-- ✅ Reading Client ID: `72cd03abeb0444488b02a5f178a31712`
-- ✅ Using redirect URI: `vibelens://callback`
-- ✅ Starting authentication flow
-- ✅ Android deep link configured
+- Loading `.env` file (not `.env.example`)
+- Reading Client ID: `72cd03abeb0444488b02a5f178a31712`
+- Using redirect URI: `vibelens://callback`
+- Starting authentication flow
+- Android deep link configured
 
-## The Problem ❌
+## The Problem
 
 **Error**: `null_intent, Failed to authorize: Null intent received`
 
@@ -18,7 +18,7 @@ This specific error means:
 2. BUT the redirect back to the app is failing
 3. This happens when the redirect URI isn't whitelisted in Spotify Dashboard
 
-## Critical Fix Required 🔴
+## Critical Fix Required
 
 **You MUST add the redirect URI to your Spotify Developer Dashboard:**
 
@@ -36,7 +36,7 @@ This specific error means:
    - Click on your app name
    - Click the "Settings" button (top right)
 
-4. **Add Redirect URI** ⭐ **CRITICAL STEP**
+4. **Add Redirect URI** **CRITICAL STEP**
    - Scroll down to "Redirect URIs" section
    - Click "Edit" or "Add URI"
    - Type EXACTLY: `vibelens://callback`
@@ -67,22 +67,22 @@ This specific error means:
 
 When it works, you'll see:
 ```
-🎵 VibeLens ℹ️  Starting Spotify authentication with Client ID: 72cd03ab...
-🎵 VibeLens ℹ️  Using redirect URI: vibelens://callback
-🎵 VibeLens ℹ️  Authorization response received
-🎵 VibeLens ℹ️  Got authorization code, exchanging for token...
-🎵 VibeLens ✅ Access token received: BQDt3zfU8y...
-🎵 VibeLens ✅ Spotify authentication successful
+ VibeLens ℹ Starting Spotify authentication with Client ID: 72cd03ab...
+ VibeLens ℹ Using redirect URI: vibelens://callback
+ VibeLens ℹ Authorization response received
+ VibeLens ℹ Got authorization code, exchanging for token...
+ VibeLens Access token received: BQDt3zfU8y...
+ VibeLens Spotify authentication successful
 ```
 
 ## Still Not Working?
 
 ### Check #1: Verify Redirect URI Format
 In Spotify Dashboard, the redirect URI must be:
-- ✅ `vibelens://callback`
-- ❌ NOT `https://vibelens.com/callback`
-- ❌ NOT `http://localhost:8888/callback`
-- ❌ NOT `vibelens://callback/`
+- `vibelens://callback`
+- NOT `https://vibelens.com/callback`
+- NOT `http://localhost:8888/callback`
+- NOT `vibelens://callback/`
 
 ### Check #2: Verify Client ID
 Make sure the Client ID in Spotify Dashboard matches your `.env`:

@@ -1,8 +1,8 @@
-# 🎵 Activate Spotify Integration (10 Minutes)
+# Activate Spotify Integration (10 Minutes)
 
 ## Current Status
 
-✅ **All code is implemented and ready!**
+ **All code is implemented and ready!**
 
 The Spotify integration is 100% complete in code:
 - OAuth authentication flow
@@ -26,12 +26,12 @@ The Spotify integration is 100% complete in code:
    - **Name:** VibeLens
    - **Description:** AI mood-based music app
    - **Website:** http://localhost
-   - **Redirect URI:** `vibelens://callback` ⚠️ **EXACT - no changes!**
+   - **Redirect URI:** `vibelens://callback` **EXACT - no changes!**
 4. Check all these scopes:
-   - ✅ `playlist-modify-public`
-   - ✅ `playlist-modify-private`
-   - ✅ `user-read-private`
-   - ✅ `user-read-email`
+   - `playlist-modify-public`
+   - `playlist-modify-private`
+   - `user-read-private`
+   - `user-read-email`
 5. Click **Save**
 
 ### 2. Get Client ID (1 min)
@@ -66,7 +66,7 @@ flutter run
 
 ---
 
-## ✅ That's It!
+## That's It!
 
 Now test the full flow:
 
@@ -78,14 +78,14 @@ Now test the full flow:
 
 ---
 
-## 🎯 What Works Now
+## What Works Now
 
 ### Mood Detection + Playlist Generation
 
 ```
 Camera → AI Mood Detection → Spotify Playlist
    ↓             ↓                    ↓
-  📸          🤖 "nostalgic"      🎵 25 tracks
+             "nostalgic" 25 tracks
               34.5% confident         (retro, 80s)
 ```
 
@@ -100,11 +100,11 @@ Camera → AI Mood Detection → Spotify Playlist
 
 ---
 
-## 📚 Full Documentation
+## Full Documentation
 
 For detailed setup, troubleshooting, and technical details:
 
-👉 **See `SPOTIFY_SETUP.md`**
+ **See `SPOTIFY_SETUP.md`**
 
 Covers:
 - Complete setup guide
@@ -116,7 +116,7 @@ Covers:
 
 ---
 
-## 🐛 Quick Troubleshooting
+## Quick Troubleshooting
 
 **"Invalid client" error:**
 - Double-check Client ID in `.env`
@@ -135,15 +135,15 @@ Covers:
 
 ---
 
-## 🎉 You're Ready!
+## You're Ready!
 
 Once you add your Client ID:
-- ✅ Full AI mood detection
-- ✅ Spotify playlist generation  
-- ✅ Beautiful animated UI
-- ✅ Deep linking to Spotify app
+- Full AI mood detection
+- Spotify playlist generation  
+- Beautiful animated UI
+- Deep linking to Spotify app
 
 **Total time to activate:** 10 minutes  
 **Code changes needed:** 0 (just add 1 line to `.env`)
 
-Enjoy your AI-powered mood playlists! 🎵✨
+Enjoy your AI-powered mood playlists!

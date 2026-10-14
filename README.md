@@ -4,18 +4,18 @@
 
 VibeLens uses a vision AI model (Google Gemini or ChatGPT, with your own API key) to analyze visual scenes and generate personalized music playlists that match the emotional atmosphere of your surroundings.
 
-## ✨ Features
+## Features
 
-- **🤖 Cloud AI classification** — Sign in with a Gemini or OpenAI API key; the photo is sent to that provider to classify its mood
-- **📸 Real-time camera** — Instant mood classification from your surroundings  
-- **🎵 Spotify integration** — OAuth authentication and automatic playlist generation
-- **📊 Mood history** — Track your mood detections with statistics and filtering
-- **🎨 Mood visualization** — Beautiful gradients and animations that reflect emotions
-- **⚙️ Comprehensive settings** — Manage Spotify, preferences, and privacy
-- **⚡ Fast & lightweight** — <800ms inference, Material Design 3 UI
-- **💾 Local storage** — All data stored securely on your device
+- **Cloud AI classification** — Sign in with a Gemini or OpenAI API key; the photo is sent to that provider to classify its mood
+- **Real-time camera** — Instant mood classification from your surroundings  
+- **Spotify integration** — OAuth authentication and automatic playlist generation
+- **Mood history** — Track your mood detections with statistics and filtering
+- **Mood visualization** — Beautiful gradients and animations that reflect emotions
+- **Comprehensive settings** — Manage Spotify, preferences, and privacy
+- **Lightweight** — Material Design 3 UI
+- **Local storage** — All data stored securely on your device
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 Camera Frame → Gemini / ChatGPT vision model → Mood Classification → Spotify API → Playlist
@@ -30,14 +30,14 @@ Camera Frame → Gemini / ChatGPT vision model → Mood Classification → Spoti
 - **Storage:** flutter_secure_storage, SharedPreferences
 - **Dependencies:** camera, url_launcher, intl, uuid
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
 - Flutter SDK 3.35.7+
 - Dart 3.3+
 - Android Studio / Xcode
-- Python 3.9-3.13 (for model training/conversion)
+- A Google Gemini or OpenAI API key (for mood classification)
 - Spotify Developer Account (for playlist features)
 
 ### Installation
@@ -70,7 +70,7 @@ sign-in for third-party apps). Keys are kept in secure storage on the device.
 The photo is resized to <=768px JPEG and sent to the provider; usage is billed to
 your key. Without a key, capture shows a "sign in first" error.
 
-## 📱 Usage
+## Usage
 
 1. **Launch app** and grant camera permissions
 2. **Point camera** at any scene (workspace, window view, café, nature, etc.)
@@ -80,52 +80,50 @@ your key. Without a key, capture shows a "sign in first" error.
 6. **View history** — Access past mood detections, statistics, and trends
 7. **Manage settings** — Configure Spotify, playlist preferences, and privacy options
 
-## 🎨 Mood Categories
+## Mood Categories
 
-| Mood | Emoji | Description | Music Style |
-|------|-------|-------------|-------------|
-| **Cozy** | ☕ | Warm, comfortable, intimate | Acoustic, Lo-fi, Chill |
-| **Energetic** | ⚡ | Dynamic, vibrant, high-energy | Dance, Pop, Electronic |
-| **Melancholic** | 🌧️ | Reflective, somber, introspective | Sad, Emotional, Slow |
-| **Calm** | 🌊 | Peaceful, serene, tranquil | Ambient, Meditation, Nature |
-| **Nostalgic** | � | Sentimental, vintage, reminiscent | Retro, Classics, Throwback |
-| **Romantic** | � | Loving, intimate, tender | Love Songs, R&B, Ballads |
+| Mood | Description | Music Style |
+|------|-------------|-------------|
+| **Cozy** | Warm, comfortable, intimate | Acoustic, Lo-fi, Chill |
+| **Energetic** | Dynamic, vibrant, high-energy | Dance, Pop, Electronic |
+| **Melancholic** | Reflective, somber, introspective | Sad, Emotional, Slow |
+| **Calm** | Peaceful, serene, tranquil | Ambient, Meditation, Nature |
+| **Nostalgic** | Sentimental, vintage, reminiscent | Retro, Classics, Throwback |
+| **Romantic** | Loving, intimate, tender | Love Songs, R&B, Ballads |
 
-## 🧪 Current Status
+## Current Status
 
 | Feature | Status |
 |---------|--------|
-| Gemini / ChatGPT mood classification | ✅ Complete |
-| Flutter app with camera | ✅ Complete |
-| Mood detection inference | ✅ Complete |
-| Animated UI with gradients | ✅ Complete |
-| Spotify OAuth (PKCE) | ✅ Complete |
-| Playlist generation | ✅ Complete |
-| Playlist playback | ✅ Complete |
-| Mood history tracking | ✅ Complete |
-| Settings & preferences | ✅ Complete |
-| Widget tests (22 passing) | ✅ Complete |
-| GitHub Actions CI/CD | ✅ Complete |
-| Production model training | 🔄 Optional enhancement |
+| Gemini / ChatGPT mood classification | Complete |
+| Flutter app with camera | Complete |
+| Animated UI with gradients | Complete |
+| Spotify OAuth (PKCE) | Complete |
+| Playlist generation | Complete |
+| Playlist playback | Complete |
+| Mood history tracking | Complete |
+| Settings & preferences | Complete |
+| Widget tests | Complete |
+| GitHub Actions CI/CD | Complete |
 
 **Latest Updates (v0.1.0):**
 
-- ✅ Full Spotify integration with playlist generation
-- ✅ Mood history with local storage and statistics
-- ✅ Enhanced settings screen (Spotify, preferences, privacy)
-- ✅ History filtering and mood distribution analytics
-- ✅ Auto-save mood detections
-- ✅ GitHub Actions CI/CD pipeline
-- ✅ All lint issues resolved
-- ✅ iOS build support (Firebase removed)
+- Full Spotify integration with playlist generation
+- Mood history with local storage and statistics
+- Enhanced settings screen (Spotify, preferences, privacy)
+- History filtering and mood distribution analytics
+- Auto-save mood detections
+- GitHub Actions CI/CD pipeline
+- All lint issues resolved
+- iOS build support (Firebase removed)
 
-## 🛠️ Development
+## Development
 
 ### Project Structure
 
 The app follows MVC with a service layer: **Views** (`screens/`, `widgets/`)
 render state and navigate; **Controllers** (`controllers/`) orchestrate a
-use case; **Services** do one job each (camera, inference, auth, storage);
+use case; **Services** do one job each (camera, classification, auth, storage);
 **Models** (`models/`) are plain Dart data with no Flutter imports.
 
 ```
@@ -182,7 +180,7 @@ flutter build appbundle --release
 flutter build ios --release
 ```
 
-## 🔐 Spotify API Setup
+## Spotify API Setup
 
 **Optional:** Spotify is only required for playlist generation. The app works fully for mood detection without it.
 
@@ -199,13 +197,13 @@ SPOTIFY_REDIRECT_URI=vibelens://callback
 
 See [SPOTIFY_SETUP.md](SPOTIFY_SETUP.md) for detailed instructions and [SPOTIFY_QUICKSTART.md](SPOTIFY_QUICKSTART.md) for a 10-minute quick start guide.
 
-## 📚 Documentation
+## Documentation
 
 - **[SPOTIFY_SETUP.md](SPOTIFY_SETUP.md)** — Comprehensive Spotify setup guide
 - **[SPOTIFY_QUICKSTART.md](SPOTIFY_QUICKSTART.md)** — 10-minute quick start
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — Technical architecture details
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Mood Classification Error
 
@@ -234,30 +232,30 @@ See [SPOTIFY_SETUP.md](SPOTIFY_SETUP.md) for detailed instructions and [SPOTIFY_
 
 ### iOS Build Fails
 
-- ✅ **Fixed in v0.1.0** — Firebase dependencies removed
+- **Fixed in v0.1.0** — Firebase dependencies removed
 - Run `pod install` in ios/ directory
 - Clean build folder: `flutter clean && flutter pub get`
 
-## 📊 Performance Metrics
+## Performance Metrics
 
 | Metric | Current | Target |
 |--------|---------|--------|
 | App size (APK release) | ~45MB | <60MB |
-| Test coverage | 22 tests | 50+ tests |
+| Tests | 17 | 50+ |
 | History storage | 100 entries | 500+ entries |
 
-## 🗺️ Roadmap
+## Roadmap
 
-### Phase 1: MVP ✅ (Complete)
+### Phase 1: MVP (Complete)
 
 - [x] Flutter app scaffold
 - [x] Camera integration
 - [x] Cloud mood classification (Gemini / OpenAI)
 - [x] Basic UI with mood display
-- [x] Unit tests (22 passing)
+- [x] Unit tests
 - [x] Material Design 3 theming
 
-### Phase 2: Features ✅ (Complete)
+### Phase 2: Features (Complete)
 
 - [x] Spotify OAuth (PKCE)
 - [x] Full playlist generation
@@ -267,17 +265,17 @@ See [SPOTIFY_SETUP.md](SPOTIFY_SETUP.md) for detailed instructions and [SPOTIFY_
 - [x] Statistics and filtering
 - [x] GitHub Actions CI/CD
 
-### Phase 3: Polish 📅 (Planned)
+### Phase 3: Polish (Planned)
 
-- [ ] Custom model training on larger dataset
-- [ ] Performance optimization (<200ms inference)
+- [ ] Provider key validation at sign-in
+- [ ] Performance optimization
 - [ ] UI/UX refinements and animations
 - [ ] Integration tests
 - [ ] Offline playlist caching
 - [ ] Social features (share moods/playlists)
 - [ ] Beta release on Play Store / App Store
 
-### Future Enhancements 💡
+### Future Enhancements
 
 - [ ] Voice mood detection
 - [ ] Location-based mood patterns
@@ -286,7 +284,7 @@ See [SPOTIFY_SETUP.md](SPOTIFY_SETUP.md) for detailed instructions and [SPOTIFY_
 - [ ] Multi-language support
 - [ ] Dark/Light theme toggle
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! This project is actively maintained.
 
@@ -300,17 +298,17 @@ Contributions are welcome! This project is actively maintained.
 
 **Areas needing help:**
 
-- Model training on larger datasets
+- Automated tests for the cloud classification service
 - iOS testing and optimization
 - UI/UX improvements
 - Additional test coverage
 - Documentation improvements
 
-## 📄 License
+## License
 
 MIT License — see [LICENSE](LICENSE) file
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Spotify API for music discovery
 - Flutter team for amazing framework
@@ -318,6 +316,6 @@ MIT License — see [LICENSE](LICENSE) file
 
 ---
 
-**Built with Flutter 💙 | Vision AI 🧠 | Music discovery 🎵**
+**Built with Flutter | Vision AI | Music discovery **
 
-**[⭐ Star this repo](https://github.com/Moaaz-Ahmad/VibeLens)** if you found it useful!
+**[ Star this repo](https://github.com/Moaaz-Ahmad/VibeLens)** if you found it useful!
