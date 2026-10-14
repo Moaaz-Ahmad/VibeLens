@@ -26,15 +26,6 @@ class AppConstants {
   static const double spacingXL = 32.0;
 }
 
-/// On-device model configuration. Output classes = MoodLabel.values.
-class ModelConfig {
-  ModelConfig._();
-
-  static const String path = 'assets/models/mood_classifier.tflite';
-  static const int inputSize = 224;
-  static const int channels = 3;
-}
-
 /// Spotify endpoints.
 class SpotifyApi {
   SpotifyApi._();

@@ -2,11 +2,11 @@
 
 > Point your camera at a scene. Capture its mood. Get a perfect Spotify playlist.
 
-VibeLens uses on-device AI to analyze visual scenes and generate personalized music playlists that match the emotional atmosphere of your surroundings.
+VibeLens uses a vision AI model (Google Gemini or ChatGPT, with your own API key) to analyze visual scenes and generate personalized music playlists that match the emotional atmosphere of your surroundings.
 
 ## ✨ Features
 
-- **🤖 On-device AI** — Privacy-first mood detection using TensorFlow Lite
+- **🤖 Cloud AI classification** — Sign in with a Gemini or OpenAI API key; the photo is sent to that provider to classify its mood
 - **📸 Real-time camera** — Instant mood classification from your surroundings  
 - **🎵 Spotify integration** — OAuth authentication and automatic playlist generation
 - **📊 Mood history** — Track your mood detections with statistics and filtering
@@ -18,14 +18,13 @@ VibeLens uses on-device AI to analyze visual scenes and generate personalized mu
 ## 🏗️ Architecture
 
 ```
-Camera Frame → TFLite Model (MobileNetV2) → Mood Classification → Spotify API → Playlist
+Camera Frame → Gemini / ChatGPT vision model → Mood Classification → Spotify API → Playlist
 ```
 
 **Tech Stack:**
 
 - **Frontend:** Flutter 3.35.7 with Material Design 3
-- **ML Model:** Keras `MobileNetV2` (ImageNet backbone) + 6-class mood head — **head must be trained, see below**
-- **ML Runtime:** TensorFlow Lite (float32 or uint8; types/shapes read from the model)
+- **Mood AI:** Google Gemini (`gemini-2.5-flash`) or OpenAI (`gpt-4o-mini`) vision APIs
 - **APIs:** Spotify Web API with OAuth 2.0 (PKCE)
 - **State:** Riverpod 2.6+
 - **Storage:** flutter_secure_storage, SharedPreferences
@@ -61,30 +60,15 @@ cp .env.example .env
 flutter run
 ```
 
-**Note:** The app works without Spotify credentials. Mood detection is fully functional offline. Spotify is only needed for playlist generation.
+**Note:** The app works without Spotify credentials. Mood detection needs an internet connection and a Gemini or OpenAI key. Spotify is only needed for playlist generation.
 
-### Model Setup
+### Mood classifier sign-in (Settings → Mood classifier)
 
-The `.tflite` file is **not committed** (it is gitignored). Build it with:
-
-```bash
-pip install tensorflow          # Python 3.9-3.12
-python ml/build_model.py        # writes assets/models/mood_classifier.tflite
-```
-
-[`ml/build_model.py`](ml/build_model.py) uses
-[`tf.keras.applications.MobileNetV2`](https://www.tensorflow.org/api_docs/python/tf/keras/applications/MobileNetV2)
-as a frozen ImageNet backbone with a new 6-way softmax head, and trains the head
-if labelled images exist in `data/train/<mood>/` (optionally `data/val`, `data/test`).
-
-> **Accuracy warning:** ImageNet classes are objects, not moods. Without
-> training data the head is random and predictions are meaningless (chance =
-> ~17%). Train on labelled mood images and check the printed test accuracy
-> before trusting results.
-
-Model contract (enforced in `ModelService`): input `[1,224,224,3]` RGB 0-255
-(rescaling is inside the model), output 6 scores in `MoodLabel` enum order
-(`cozy, energetic, melancholic, calm, nostalgic, romantic`).
+Mood detection needs a provider. Pick **Google Gemini** or **ChatGPT (OpenAI)**
+and paste your own API key (Google and OpenAI don't offer consumer-account
+sign-in for third-party apps). Keys are kept in secure storage on the device.
+The photo is resized to <=768px JPEG and sent to the provider; usage is billed to
+your key. Without a key, capture shows a "sign in first" error.
 
 ## 📱 Usage
 
@@ -111,9 +95,7 @@ Model contract (enforced in `ModelService`): input `[1,224,224,3]` RGB 0-255
 
 | Feature | Status |
 |---------|--------|
-| MobileNetV2 backbone + build script | ✅ Complete |
-| Mood head trained on labelled data | ❌ Needs dataset |
-| TFLite export | ✅ `ml/build_model.py` |
+| Gemini / ChatGPT mood classification | ✅ Complete |
 | Flutter app with camera | ✅ Complete |
 | Mood detection inference | ✅ Complete |
 | Animated UI with gradients | ✅ Complete |
@@ -151,7 +133,7 @@ vibelens/
 ├── lib/
 │   ├── main.dart
 │   ├── core/
-│   │   ├── constants.dart        # AppConstants (UI), ModelConfig, SpotifyApi
+│   │   ├── constants.dart        # AppConstants (UI), SpotifyApi
 │   │   ├── mood_style.dart       # UI extension on MoodLabel (colors, text)
 │   │   ├── theme.dart
 │   │   └── utils/logger.dart
@@ -160,16 +142,16 @@ vibelens/
 │   │   └── camera_screen_controller.dart  # capture -> infer -> cleanup
 │   ├── screens/                  # Views
 │   ├── services/
-│   │   ├── model_service.dart         # TFLite load + run + postprocess
-│   │   ├── image_preprocessor.dart    # decode/orient/resize (off UI isolate)
+│   │   ├── mood_classifier_service.dart  # picks signed-in provider
+│   │   ├── cloud_mood_service.dart    # Gemini / OpenAI vision calls
+│   │   ├── ai_provider_service.dart   # provider + API key storage
+│   │   ├── image_preprocessor.dart    # orient/resize/JPEG (off UI isolate)
 │   │   ├── camera_service.dart
 │   │   ├── spotify_auth_service.dart  # PKCE URL + token exchange
 │   │   ├── spotify_service.dart       # token storage + Spotify API
 │   │   ├── settings_service.dart      # SharedPreferences
 │   │   └── history_service.dart
 │   └── widgets/
-├── ml/build_model.py             # Keras MobileNetV2 -> .tflite
-├── assets/models/                # mood_classifier.tflite (generated, gitignored)
 ├── test/widget_test.dart
 └── .github/workflows/            # CI + release
 ```
@@ -221,16 +203,15 @@ See [SPOTIFY_SETUP.md](SPOTIFY_SETUP.md) for detailed instructions and [SPOTIFY_
 
 - **[SPOTIFY_SETUP.md](SPOTIFY_SETUP.md)** — Comprehensive Spotify setup guide
 - **[SPOTIFY_QUICKSTART.md](SPOTIFY_QUICKSTART.md)** — 10-minute quick start
-- **[GETTING_STARTED_ML.md](GETTING_STARTED_ML.md)** — ML model training guide
-- **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** — Project organization
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — Technical architecture details
 
 ## 🐛 Troubleshooting
 
-### Model Inference Error
-If you see "invalid argument: input element is double while tensor data type is uint8":
+### Mood Classification Error
 
-- ✅ **Fixed in v0.1.0** — Model preprocessing now correctly handles uint8 (0-255)
+- "Sign in ... first": add a Gemini or OpenAI API key in Settings → Mood classifier
+- "API key rejected": the key is invalid or lacks access; sign out and re-enter it
+- "Provider error 429": rate limit or exhausted quota on your key
 
 ### Camera Permission Denied
 
@@ -261,11 +242,8 @@ If you see "invalid argument: input element is double while tensor data type is 
 
 | Metric | Current | Target |
 |--------|---------|--------|
-| Inference time | ~700ms | <200ms |
-| Model size (TFLite) | 3-5MB | <15MB |
 | App size (APK release) | ~45MB | <60MB |
 | Test coverage | 22 tests | 50+ tests |
-| Mood accuracy | not measured (untrained head) | >90% |
 | History storage | 100 entries | 500+ entries |
 
 ## 🗺️ Roadmap
@@ -274,8 +252,7 @@ If you see "invalid argument: input element is double while tensor data type is 
 
 - [x] Flutter app scaffold
 - [x] Camera integration
-- [x] MobileNetV2 backbone
-- [x] TFLite inference (uint8)
+- [x] Cloud mood classification (Gemini / OpenAI)
 - [x] Basic UI with mood display
 - [x] Unit tests (22 passing)
 - [x] Material Design 3 theming
@@ -335,13 +312,12 @@ MIT License — see [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Pre-trained MobileNetV2 from [PyTorch Vision](https://pytorch.org/vision/stable/models.html)
 - Spotify API for music discovery
 - Flutter team for amazing framework
-- TensorFlow Lite for on-device ML
+- Google Gemini and OpenAI vision APIs
 
 ---
 
-**Built with Flutter 💙 | On-device AI 🧠 | Music discovery 🎵**
+**Built with Flutter 💙 | Vision AI 🧠 | Music discovery 🎵**
 
 **[⭐ Star this repo](https://github.com/Moaaz-Ahmad/VibeLens)** if you found it useful!

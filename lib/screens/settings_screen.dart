@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/spotify_service.dart';
 import '../services/history_service.dart';
+import '../services/ai_provider_service.dart';
 import '../services/settings_service.dart';
 import '../core/theme.dart';
 
@@ -18,6 +19,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _historyService = HistoryService.instance;
 
   bool _isSpotifyConnected = false;
+  AiProvider? _aiProvider;
   bool _enableHistory = true;
   bool _enableAnimations = true;
   int _playlistLength = 20;
@@ -34,10 +36,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     final settings = await SettingsService.instance.load();
     final isConnected = await _spotifyService.isAuthenticated();
+    final aiProvider = await AiProviderService.instance.selected();
 
     if (mounted) {
       setState(() {
         _isSpotifyConnected = isConnected;
+        _aiProvider = aiProvider;
         _enableHistory = settings.enableHistory;
         _enableAnimations = settings.enableAnimations;
         _playlistLength = settings.playlistLength;
@@ -121,6 +125,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onPressed: _connectSpotify,
                     child: const Text('Connect'),
                   ),
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.auto_awesome),
+            title: const Text('Mood classifier'),
+            subtitle: Text(_aiProvider?.label ?? 'Not signed in'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              await Navigator.pushNamed(context, '/ai-signin');
+              _loadSettings();
+            },
           ),
 
           const Divider(),

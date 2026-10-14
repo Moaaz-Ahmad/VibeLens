@@ -53,22 +53,6 @@ app.*.map.json
 **/GoogleService-Info.plist
 lib/config/api_keys.dart
 
-# ML models and data
-ml/data/raw/
-ml/data/processed/
-ml/checkpoints/
-ml/logs/
-ml/wandb/
-ml/.ipynb_checkpoints/
-*.h5
-*.pb
-*.onnx
-*.pth
-*.pt
-
-# TFLite models (except final committed ones)
-assets/models/*.tflite
-!assets/models/vibelens_v*.tflite
 
 # Python
 __pycache__/

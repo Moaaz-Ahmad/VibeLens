@@ -11,8 +11,8 @@ import 'screens/results_screen.dart';
 import 'screens/playlist_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/spotify_auth_screen.dart';
+import 'screens/ai_signin_screen.dart';
 import 'screens/history_screen.dart';
-import 'services/model_service.dart';
 import 'services/camera_service.dart';
 import 'services/history_service.dart';
 
@@ -43,7 +43,6 @@ void main() async {
     // Initialize services in parallel
     Logger.info('Initializing services...');
     await Future.wait([
-      ModelService.instance.initialize(),
       CameraService.instance.initialize(),
       HistoryService.instance.initialize(),
     ]);
@@ -74,6 +73,7 @@ class VibeLensApp extends StatelessWidget {
         '/playlist': (context) => const PlaylistScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/spotify-auth': (context) => const SpotifyAuthScreen(),
+        '/ai-signin': (context) => const AiSigninScreen(),
         '/history': (context) => const HistoryScreen(),
       },
     );

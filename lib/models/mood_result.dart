@@ -1,5 +1,4 @@
 /// Mood classification labels.
-/// Declaration order is the model's output order (see ml/build_model.py).
 enum MoodLabel {
   cozy,
   energetic,

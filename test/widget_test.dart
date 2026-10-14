@@ -51,11 +51,6 @@ void main() {
   });
 
   group('Config tests', () {
-    test('model config', () {
-      expect(ModelConfig.path, 'assets/models/mood_classifier.tflite');
-      expect(ModelConfig.inputSize, 224);
-    });
-
     test('has 6 mood labels', () {
       expect(MoodLabel.values.length, 6);
     });

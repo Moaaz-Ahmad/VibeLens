@@ -5,16 +5,18 @@ import 'package:flutter/foundation.dart';
 
 import '../models/mood_result.dart';
 import '../services/camera_service.dart';
-import '../services/model_service.dart';
+import '../services/mood_classifier_service.dart';
 
 /// Orchestrates camera + model for the camera screen (capture -> infer -> cleanup).
 class CameraScreenController extends ChangeNotifier {
-  CameraScreenController({CameraService? camera, ModelService? model})
-      : _camera = camera ?? CameraService.instance,
-        _model = model ?? ModelService.instance;
+  CameraScreenController({
+    CameraService? camera,
+    MoodClassifierService? classifier,
+  })  : _camera = camera ?? CameraService.instance,
+        _classifier = classifier ?? MoodClassifierService();
 
   final CameraService _camera;
-  final ModelService _model;
+  final MoodClassifierService _classifier;
 
   bool isInitializing = true;
   bool isProcessing = false;
@@ -29,7 +31,6 @@ class CameraScreenController extends ChangeNotifier {
     notifyListeners();
     try {
       if (!_camera.isInitialized) await _camera.initialize();
-      if (!_model.isInitialized) await _model.initialize();
     } catch (e) {
       error = e.toString();
     }
@@ -43,7 +44,7 @@ class CameraScreenController extends ChangeNotifier {
     return _busy(() async {
       final path = await _camera.takePicture();
       try {
-        return await _model.predictMood(path);
+        return await _classifier.classify(path);
       } finally {
         try {
           await File(path).delete();

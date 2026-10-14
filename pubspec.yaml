@@ -19,7 +19,6 @@ dependencies:
   image: ^4.1.4
   
   # TensorFlow Lite
-  tflite_flutter: ^0.11.0
   
   # HTTP & API
   http: ^1.1.2
@@ -71,7 +70,6 @@ flutter:
   uses-material-design: true
   
   assets:
-    - assets/models/
     - assets/images/
     - .env.example
   
