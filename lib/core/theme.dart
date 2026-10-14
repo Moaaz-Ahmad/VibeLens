@@ -191,5 +191,4 @@ class AppTheme {
     }
     return moodGradients[index];
   }
-
 }

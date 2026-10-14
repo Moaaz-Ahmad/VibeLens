@@ -60,7 +60,7 @@ class _AiSigninScreenState extends State<AiSigninScreen> {
 
   @override
   Widget build(BuildContext context) {
-        final keyUrl = _editing == AiProvider.gemini
+    final keyUrl = _editing == AiProvider.gemini
         ? 'aistudio.google.com/apikey'
         : 'platform.openai.com/api-keys';
     return Scaffold(
