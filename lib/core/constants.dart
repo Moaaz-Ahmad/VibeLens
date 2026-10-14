@@ -7,48 +7,6 @@ class AppConstants {
   static const String appVersion = '0.1.0';
   static const String appTagline = 'AI Mood Playlist Generator';
 
-  // Model Configuration
-  static const String modelPath = 'assets/models/mood_classifier.tflite';
-  static const int modelInputSize = 224;
-  static const int modelChannels = 3;
-  static const int modelClasses = 6;
-
-  // Mood Labels
-  static const List<String> moodLabels = [
-    'Cozy',
-    'Energetic',
-    'Melancholic',
-    'Calm',
-    'Nostalgic',
-    'Romantic',
-  ];
-
-  // Mood Emojis
-  static const List<String> moodEmojis = [
-    '🛋️',
-    '⚡',
-    '🌧️',
-    '🌊',
-    '📸',
-    '💕',
-  ];
-
-  // Mood Descriptions
-  static const Map<String, String> moodDescriptions = {
-    'Cozy': 'Warm, comfortable, and intimate',
-    'Energetic': 'Dynamic, vibrant, and high-energy',
-    'Melancholic': 'Reflective, somber, and introspective',
-    'Calm': 'Peaceful, serene, and tranquil',
-    'Nostalgic': 'Sentimental, vintage, and reminiscent',
-    'Romantic': 'Loving, intimate, and tender',
-  };
-
-  // API Configuration
-  static const String spotifyAuthUrl = 'https://accounts.spotify.com/authorize';
-  static const String spotifyTokenUrl =
-      'https://accounts.spotify.com/api/token';
-  static const String spotifyApiBase = 'https://api.spotify.com/v1';
-
   // UI Configuration
   static const double cardBorderRadius = 16.0;
   static const double buttonBorderRadius = 12.0;
@@ -66,8 +24,22 @@ class AppConstants {
   static const double spacingM = 16.0;
   static const double spacingL = 24.0;
   static const double spacingXL = 32.0;
+}
 
-  // Performance
-  static const int imageQuality = 85;
-  static const Duration inferenceTimeout = Duration(seconds: 10);
+/// On-device model configuration. Output classes = MoodLabel.values.
+class ModelConfig {
+  ModelConfig._();
+
+  static const String path = 'assets/models/mood_classifier.tflite';
+  static const int inputSize = 224;
+  static const int channels = 3;
+}
+
+/// Spotify endpoints.
+class SpotifyApi {
+  SpotifyApi._();
+
+  static const String authUrl = 'https://accounts.spotify.com/authorize';
+  static const String tokenUrl = 'https://accounts.spotify.com/api/token';
+  static const String baseUrl = 'https://api.spotify.com/v1';
 }

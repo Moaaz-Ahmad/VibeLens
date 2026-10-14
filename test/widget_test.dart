@@ -7,6 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:vibelens/core/theme.dart';
 import 'package:vibelens/core/constants.dart';
+import 'package:vibelens/core/mood_style.dart';
+import 'package:vibelens/models/mood_result.dart';
 
 void main() {
   group('AppTheme tests', () {
@@ -48,51 +50,25 @@ void main() {
     });
   });
 
-  group('AppConstants tests', () {
-    test('model path is correct', () {
-      expect(AppConstants.modelPath, 'assets/models/mood_classifier.tflite');
-    });
-
-    test('model input size is 224', () {
-      expect(AppConstants.modelInputSize, 224);
-    });
-
-    test('model has 6 classes', () {
-      expect(AppConstants.modelClasses, 6);
+  group('Config tests', () {
+    test('model config', () {
+      expect(ModelConfig.path, 'assets/models/mood_classifier.tflite');
+      expect(ModelConfig.inputSize, 224);
     });
 
     test('has 6 mood labels', () {
-      expect(AppConstants.moodLabels.length, 6);
+      expect(MoodLabel.values.length, 6);
     });
 
-    test('mood labels are correct', () {
-      expect(
-        AppConstants.moodLabels,
-        [
-          'Cozy',
-          'Energetic',
-          'Melancholic',
-          'Calm',
-          'Nostalgic',
-          'Romantic',
-        ],
-      );
-    });
-
-    test('has 6 mood emojis', () {
-      expect(AppConstants.moodEmojis.length, 6);
-    });
-
-    test('has mood descriptions for all labels', () {
-      for (final label in AppConstants.moodLabels) {
-        expect(AppConstants.moodDescriptions.containsKey(label), true);
-        expect(AppConstants.moodDescriptions[label], isNotNull);
-        expect(AppConstants.moodDescriptions[label]!.isNotEmpty, true);
+    test('every mood has a gradient and description', () {
+      for (final mood in MoodLabel.values) {
+        expect(mood.gradientColors.length, 2);
+        expect(mood.description, isNotEmpty);
       }
     });
 
     test('Spotify auth URL is valid', () {
-      expect(AppConstants.spotifyAuthUrl.startsWith('https://'), true);
+      expect(SpotifyApi.authUrl.startsWith('https://'), true);
     });
 
     test('spacing values are positive', () {

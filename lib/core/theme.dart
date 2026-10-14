@@ -192,9 +192,4 @@ class AppTheme {
     return moodGradients[index];
   }
 
-  /// Get mood gradient by mood label
-  static List<Color> getMoodGradientByLabel(String label) {
-    final index = AppConstants.moodLabels.indexOf(label);
-    return getMoodGradient(index);
-  }
 }

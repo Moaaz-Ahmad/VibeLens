@@ -1,12 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:app_links/app_links.dart';
-import 'package:crypto/crypto.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../services/spotify_auth_service.dart';
 import '../services/spotify_service.dart';
 import '../core/utils/logger.dart';
 
@@ -20,7 +16,7 @@ class SpotifyAuthScreen extends StatefulWidget {
 class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
   final _spotifyService = SpotifyService.instance;
   final _appLinks = AppLinks();
-  final Random _random = Random.secure();
+  final _auth = SpotifyAuthService.instance;
   StreamSubscription<Uri>? _linkSubscription;
 
   bool _isLoading = false;
@@ -28,15 +24,6 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
   String? _error;
   String? _codeVerifier;
   String? _state;
-
-  // Load Spotify credentials from .env file
-  String get clientId => dotenv.env['SPOTIFY_CLIENT_ID'] ?? '';
-  String get redirectUri =>
-      dotenv.env['SPOTIFY_REDIRECT_URI'] ?? 'vibelens://callback';
-
-  static const String _authorizationHost = 'accounts.spotify.com';
-  static const String _authorizationPath = '/authorize';
-  static const String _tokenEndpoint = 'https://accounts.spotify.com/api/token';
 
   @override
   void initState() {
@@ -122,50 +109,9 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
     }
 
     try {
-      final response = await http.post(
-        Uri.parse(_tokenEndpoint),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: {
-          'client_id': clientId,
-          'grant_type': 'authorization_code',
-          'code': code,
-          'redirect_uri': redirectUri,
-          'code_verifier': verifier,
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data =
-            jsonDecode(response.body) as Map<String, dynamic>;
-        final accessToken = data['access_token'] as String?;
-        final expiresInValue = data['expires_in'];
-        final expiresIn = expiresInValue is int
-            ? expiresInValue
-            : int.tryParse(expiresInValue?.toString() ?? '') ?? 3600;
-
-        if (accessToken != null && accessToken.isNotEmpty) {
-          Logger.success('Access token obtained from Spotify');
-          await _saveTokenAndReturn(accessToken, expiresIn);
-        } else {
-          Logger.error(
-            'Access token missing in token response: ${response.body}',
-          );
-          setState(() {
-            _error = 'Authentication failed: Access token missing in response.';
-            _isLoading = false;
-          });
-        }
-      } else {
-        Logger.error(
-          'Token exchange failed (${response.statusCode}): ${response.body}',
-        );
-        setState(() {
-          _error = 'Authentication failed: Unable to retrieve access token.';
-          _isLoading = false;
-        });
-      }
+      final token = await _auth.exchangeCode(code, verifier);
+      Logger.success('Access token obtained from Spotify');
+      await _saveTokenAndReturn(token.accessToken, token.expiresIn);
     } catch (e) {
       Logger.error('Token exchange error', e);
       setState(() {
@@ -173,32 +119,6 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
         _isLoading = false;
       });
     }
-  }
-
-  String _generateCodeVerifier() {
-    const charset =
-        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-    return List.generate(64, (_) => charset[_random.nextInt(charset.length)])
-        .join();
-  }
-
-  String _generateCodeChallenge(String verifier) {
-    final bytes = utf8.encode(verifier);
-    final digest = sha256.convert(bytes);
-    return _base64UrlEncode(digest.bytes);
-  }
-
-  String _generateRandomString(int length) {
-    const charset =
-        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    return List.generate(
-      length,
-      (_) => charset[_random.nextInt(charset.length)],
-    ).join();
-  }
-
-  String _base64UrlEncode(List<int> bytes) {
-    return base64UrlEncode(bytes).replaceAll('=', '');
   }
 
   Future<void> _saveTokenAndReturn(String accessToken, int expiresIn) async {
@@ -231,24 +151,13 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
   }
 
   Future<void> _authenticate() async {
-    // Debug: Log what we're loading from .env
-    Logger.info(
-      'SPOTIFY_CLIENT_ID from .env: ${dotenv.env['SPOTIFY_CLIENT_ID']}',
-    );
-    Logger.info(
-      'SPOTIFY_REDIRECT_URI from .env: ${dotenv.env['SPOTIFY_REDIRECT_URI']}',
-    );
-    Logger.info('Computed clientId: $clientId');
-    Logger.info('Computed redirectUri: $redirectUri');
-
-    // Check if client ID is configured
-    if (clientId.isEmpty || clientId == 'your_client_id_here') {
+    if (!_auth.isConfigured) {
+      Logger.error('Spotify Client ID not configured');
       setState(() {
         _error =
             'Spotify Client ID not configured. Please add SPOTIFY_CLIENT_ID to .env file.';
         _isLoading = false;
       });
-      Logger.error('Spotify Client ID not configured');
       return;
     }
 
@@ -258,50 +167,18 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
     });
 
     try {
-      Logger.info(
-        'Starting Spotify authentication with Client ID: ${clientId.substring(0, 8)}...',
-      );
-      Logger.info('Using redirect URI: $redirectUri');
-      final scope = [
-        'playlist-modify-public',
-        'playlist-modify-private',
-        'user-read-private',
-        'user-read-email',
-      ].join(' ');
-
-      _codeVerifier = _generateCodeVerifier();
-      final codeChallenge = _generateCodeChallenge(_codeVerifier!);
-      _state = _generateRandomString(32);
+      final request = _auth.createRequest();
+      _codeVerifier = request.verifier;
+      _state = request.state;
       _hasHandledDeepLink = false;
 
-      Logger.info('Generated PKCE challenge for OAuth flow');
-
-      final authUri = Uri.https(
-        _authorizationHost,
-        _authorizationPath,
-        {
-          'client_id': clientId,
-          'response_type': 'code',
-          'redirect_uri': redirectUri,
-          'code_challenge_method': 'S256',
-          'code_challenge': codeChallenge,
-          'scope': scope,
-          'state': _state,
-          'show_dialog': 'true',
-        },
-      );
-
-      Logger.info('Opening auth URL: ${authUri.toString()}');
-
       final launched = await launchUrl(
-        authUri,
+        request.uri,
         mode: LaunchMode.externalApplication,
       );
-
       if (!launched) {
         throw Exception('Could not launch Spotify authorization URL');
       }
-
       Logger.info('Auth URL launched, waiting for callback...');
     } catch (e) {
       Logger.error('Spotify authentication failed', e);
@@ -365,10 +242,7 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
                 const Text(
                   'Connect your Spotify account to create personalized mood playlists',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
 
                 const Spacer(),
@@ -417,8 +291,9 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
                             height: 24,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
                         : const Text(
@@ -437,10 +312,7 @@ class _SpotifyAuthScreenState extends State<SpotifyAuthScreen> {
                   onPressed: () => Navigator.pop(context, false),
                   child: const Text(
                     'Skip for now',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
                   ),
                 ),
 

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'dart:io';
 
-import '../services/camera_service.dart';
-import '../services/model_service.dart';
+import '../controllers/camera_screen_controller.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -14,158 +12,71 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen>
     with WidgetsBindingObserver {
-  final _cameraService = CameraService.instance;
-  final _modelService = ModelService.instance;
+  final _controller = CameraScreenController();
 
-  bool _isInitializing = true;
-  bool _isProcessing = false;
-  String? _error;
-  FlashMode _flashMode = FlashMode.auto;
+  bool get _isInitializing => _controller.isInitializing;
+  bool get _isProcessing => _controller.isProcessing;
+  String? get _error => _controller.error;
+  FlashMode get _flashMode => _controller.flashMode;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initializeServices();
+    _controller.addListener(_onChanged);
+    _controller.initialize();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _controller.removeListener(_onChanged);
+    _controller.dispose();
     super.dispose();
+  }
+
+  void _onChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final controller = _cameraService.controller;
-
-    // App state changed before we got the chance to initialize
-    if (controller == null || !controller.value.isInitialized) {
-      return;
-    }
+    final camera = _controller.cameraController;
+    if (camera == null || !camera.value.isInitialized) return;
 
     if (state == AppLifecycleState.inactive) {
-      controller.dispose();
+      camera.dispose();
     } else if (state == AppLifecycleState.resumed) {
-      _initializeServices();
+      _controller.initialize();
     }
   }
 
-  Future<void> _initializeServices() async {
-    setState(() {
-      _isInitializing = true;
-      _error = null;
-    });
-
-    try {
-      // Initialize camera
-      if (!_cameraService.isInitialized) {
-        await _cameraService.initialize();
-      }
-
-      // Initialize model
-      if (!_modelService.isInitialized) {
-        await _modelService.initialize();
-      }
-
-      setState(() {
-        _isInitializing = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isInitializing = false;
-      });
-    }
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   Future<void> _takePictureAndAnalyze() async {
-    if (_isProcessing) return;
-
-    setState(() {
-      _isProcessing = true;
-    });
-
     try {
-      // Take picture
-      final imagePath = await _cameraService.takePicture();
-
-      // Run inference
-      final result = await _modelService.predictMood(imagePath);
-
-      // Navigate to results
-      if (mounted) {
-        await Navigator.pushNamed(
-          context,
-          '/results',
-          arguments: result,
-        );
+      final result = await _controller.captureAndAnalyze();
+      if (result != null && mounted) {
+        await Navigator.pushNamed(context, '/results', arguments: result);
       }
-
-      // Clean up temporary file
-      try {
-        await File(imagePath).delete();
-      } catch (_) {}
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
+      if (mounted) _showError('Error: $e');
     }
   }
 
   Future<void> _switchCamera() async {
-    setState(() {
-      _isProcessing = true;
-    });
-
     try {
-      await _cameraService.switchCamera();
+      await _controller.switchCamera();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error switching camera: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
+      if (mounted) _showError('Error switching camera: $e');
     }
   }
 
-  Future<void> _toggleFlash() async {
-    FlashMode newMode;
-    switch (_flashMode) {
-      case FlashMode.off:
-        newMode = FlashMode.auto;
-        break;
-      case FlashMode.auto:
-        newMode = FlashMode.always;
-        break;
-      case FlashMode.always:
-      case FlashMode.torch:
-        newMode = FlashMode.off;
-        break;
-    }
-
-    await _cameraService.setFlashMode(newMode);
-    setState(() {
-      _flashMode = newMode;
-    });
-  }
+  Future<void> _toggleFlash() => _controller.toggleFlash();
 
   IconData _getFlashIcon() {
     switch (_flashMode) {
@@ -181,10 +92,7 @@ class _CameraScreenState extends State<CameraScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: _buildBody(),
-    );
+    return Scaffold(backgroundColor: Colors.black, body: _buildBody());
   }
 
   Widget _buildBody() {
@@ -193,12 +101,10 @@ class _CameraScreenState extends State<CameraScreen>
     }
 
     if (_isInitializing) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
-    final controller = _cameraService.controller;
+    final controller = _controller.cameraController;
     if (controller == null || !controller.value.isInitialized) {
       return const Center(
         child: Text(
@@ -233,9 +139,7 @@ class _CameraScreenState extends State<CameraScreen>
 
     return Transform.scale(
       scale: deviceRatio / previewRatio,
-      child: Center(
-        child: CameraPreview(controller),
-      ),
+      child: Center(child: CameraPreview(controller)),
     );
   }
 
@@ -246,10 +150,7 @@ class _CameraScreenState extends State<CameraScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.6),
-              Colors.transparent,
-            ],
+            colors: [Colors.black.withValues(alpha: 0.6), Colors.transparent],
           ),
         ),
         child: Padding(
@@ -260,10 +161,7 @@ class _CameraScreenState extends State<CameraScreen>
               // App title with gradient
               ShaderMask(
                 shaderCallback: (bounds) => const LinearGradient(
-                  colors: [
-                    Color(0xFF1DB954),
-                    Color(0xFF1ED760),
-                  ],
+                  colors: [Color(0xFF1DB954), Color(0xFF1ED760)],
                 ).createShader(bounds),
                 child: const Text(
                   'VibeLens',
@@ -332,10 +230,7 @@ class _CameraScreenState extends State<CameraScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.transparent,
-              Colors.black.withValues(alpha: 0.7),
-            ],
+            colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7)],
           ),
         ),
         child: SafeArea(
@@ -377,10 +272,7 @@ class _CameraScreenState extends State<CameraScreen>
                           height: 80,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 4,
-                            ),
+                            border: Border.all(color: Colors.white, width: 4),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.white.withValues(alpha: 0.3),
@@ -476,18 +368,11 @@ class _CameraScreenState extends State<CameraScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline,
-              color: Colors.red,
-              size: 64,
-            ),
+            const Icon(Icons.error_outline, color: Colors.red, size: 64),
             const SizedBox(height: 16),
             const Text(
               'Camera Error',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -497,7 +382,7 @@ class _CameraScreenState extends State<CameraScreen>
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _initializeServices,
+              onPressed: _controller.initialize,
               child: const Text('Retry'),
             ),
           ],

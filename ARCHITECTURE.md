@@ -67,43 +67,27 @@ VibeLens is a Flutter mobile application that uses on-device AI to analyze visua
 
 #### On-Device Inference
 ```
-Image (224x224x3 uint8) → TFLite Model → uint8 output → Normalized probs → Mood Label
+Image -> preprocessImage (isolate) -> TFLite -> dequantize -> softmax-if-needed -> Mood Label
 ```
 
-**Current Model:**
-- **MobileNetV2**: Pre-trained on ImageNet, adapted for 6 mood classes
-- **Size**: ~3-5MB (TFLite quantized)
-- **Input**: 224×224×3 uint8 tensor
-- **Output**: 6 uint8 values (0-255), normalized to probabilities
-- **Inference time**: ~700ms on Android emulator
+**Model** (built by `ml/build_model.py`):
+- Keras `MobileNetV2` (ImageNet, frozen) + GlobalAveragePooling + Dropout + Dense(6, softmax)
+- Input `[1,224,224,3]` raw RGB 0-255; rescaling to [-1,1] is inside the model
+- Output: 6 scores in `MoodLabel` enum order
+- float32 or uint8 both work; `ModelService` reads tensor type, shape and quantization params
+- **The head is only meaningful after training on labelled mood images.**
 
-**Preprocessing:**
-```dart
-1. Load image from file
-2. Decode image bytes
-3. Resize to 224×224 (cubic interpolation)
-4. Convert RGB to uint8 [0-255]  // NO normalization needed
-5. Format as [1, 224, 224, 3] tensor
-```
+**Preprocessing** (`image_preprocessor.dart`, runs via `compute`):
+1. Decode, apply EXIF orientation
+2. Resize to 224x224 (cubic)
+3. Flatten to RGB `Float32List`/`Uint8List` matching the input tensor type
 
-**Postprocessing:**
-```dart
-1. Receive uint8 output [0-255] for 6 classes
-2. Convert to double: value / 255.0
-3. Normalize to sum = 1.0 (softmax-like)
-4. Find argmax for predicted mood
-5. Return MoodResult with probabilities
-```
+**Postprocessing** (`ModelService`):
+1. Dequantize `(v - zeroPoint) * scale` for quantized outputs
+2. Use as-is if already a distribution (non-negative, sum ~1), else softmax
+3. Argmax -> `MoodResult` (`embedding` holds the class probabilities)
 
-**Inference Flow:**
-```dart
-ModelService.predictMood(imagePath)
-  → _preprocessImage() returns List<List<List<List<int>>>>
-  → interpreter.run(imageData, output)
-  → output: List<List<int>> (uint8)
-  → normalize probabilities
-  → return MoodResult(label, confidence, embedding)
-```
+Shape mismatches (input or class count) fail fast in `initialize()`.
 
 ### 3. Spotify Integration
 
@@ -138,7 +122,19 @@ MoodResult → Mood Parameters → Spotify Search → Create Playlist
 | Nostalgic    | retro, 80s, vintage      | 0.4-0.6 | 0.4-0.6 |
 | Romantic     | love, r-n-b, smooth-jazz | 0.3-0.5 | 0.6-0.8 |
 
-### 4. Services Architecture
+### 4. Layering (MVC + services)
+
+| Layer | Location | Responsibility |
+|---|---|---|
+| Model | `lib/models/` | Plain data (`MoodLabel`, `MoodResult`, ...). No Flutter imports; presentation lives in `core/mood_style.dart`. |
+| View | `lib/screens/`, `lib/widgets/` | Render state, navigation, snackbars. No HTTP, storage or ML. |
+| Controller | `lib/controllers/` | `ChangeNotifier` per use case. `CameraScreenController` runs capture -> `ModelService.predictMood` -> temp-file cleanup; services are injectable. |
+| Services | `lib/services/` | Single-purpose: `ModelService` (inference), `image_preprocessor` (image -> tensor, in an isolate), `SpotifyAuthService` (PKCE/token exchange), `SpotifyService` (storage + API), `SettingsService`, `HistoryService`, `CameraService`. |
+
+Remaining gaps: services are still singletons without interfaces, and the
+playlist/history/results screens still talk to services directly.
+
+### 5. Services Architecture
 
 #### ModelService
 ```dart
@@ -148,7 +144,6 @@ class ModelService {
   
   Future<void> initialize()
   Future<MoodResult> predictMood(String imagePath)
-  Future<Map<MoodLabel, double>> getPredictions(String imagePath)
   void dispose()
   Map<String, dynamic> getModelInfo()
 }

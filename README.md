@@ -24,8 +24,8 @@ Camera Frame → TFLite Model (MobileNetV2) → Mood Classification → Spotify 
 **Tech Stack:**
 
 - **Frontend:** Flutter 3.35.7 with Material Design 3
-- **ML Model:** Pre-trained MobileNetV2 (adapted for 6 mood classes)
-- **ML Runtime:** TensorFlow Lite (uint8 quantized, 3-5MB)
+- **ML Model:** Keras `MobileNetV2` (ImageNet backbone) + 6-class mood head — **head must be trained, see below**
+- **ML Runtime:** TensorFlow Lite (float32 or uint8; types/shapes read from the model)
 - **APIs:** Spotify Web API with OAuth 2.0 (PKCE)
 - **State:** Riverpod 2.6+
 - **Storage:** flutter_secure_storage, SharedPreferences
@@ -63,24 +63,28 @@ flutter run
 
 **Note:** The app works without Spotify credentials. Mood detection is fully functional offline. Spotify is only needed for playlist generation.
 
-### Model Setup (Optional - Pre-trained model included)
+### Model Setup
 
-The app comes with a pre-trained MobileNetV2 model. To retrain:
+The `.tflite` file is **not committed** (it is gitignored). Build it with:
 
 ```bash
-cd ml
-pip install -r requirements.txt
-
-# Use pre-trained MobileNetV2
-python use_pretrained.py
-
-# Test the model
-python test_pretrained.py --image path/to/image.jpg
-
-# Convert to TFLite (use Google Colab for Python 3.9 compatibility)
-# Upload colab_tflite_conversion.ipynb to Colab
-# Follow instructions in PRETRAINED_QUICKSTART.md
+pip install tensorflow          # Python 3.9-3.12
+python ml/build_model.py        # writes assets/models/mood_classifier.tflite
 ```
+
+[`ml/build_model.py`](ml/build_model.py) uses
+[`tf.keras.applications.MobileNetV2`](https://www.tensorflow.org/api_docs/python/tf/keras/applications/MobileNetV2)
+as a frozen ImageNet backbone with a new 6-way softmax head, and trains the head
+if labelled images exist in `data/train/<mood>/` (optionally `data/val`, `data/test`).
+
+> **Accuracy warning:** ImageNet classes are objects, not moods. Without
+> training data the head is random and predictions are meaningless (chance =
+> ~17%). Train on labelled mood images and check the printed test accuracy
+> before trusting results.
+
+Model contract (enforced in `ModelService`): input `[1,224,224,3]` RGB 0-255
+(rescaling is inside the model), output 6 scores in `MoodLabel` enum order
+(`cozy, energetic, melancholic, calm, nostalgic, romantic`).
 
 ## 📱 Usage
 
@@ -107,8 +111,9 @@ python test_pretrained.py --image path/to/image.jpg
 
 | Feature | Status |
 |---------|--------|
-| Pre-trained MobileNetV2 model | ✅ Complete |
-| TFLite conversion (uint8) | ✅ Complete |
+| MobileNetV2 backbone + build script | ✅ Complete |
+| Mood head trained on labelled data | ❌ Needs dataset |
+| TFLite export | ✅ `ml/build_model.py` |
 | Flutter app with camera | ✅ Complete |
 | Mood detection inference | ✅ Complete |
 | Animated UI with gradients | ✅ Complete |
@@ -136,60 +141,43 @@ python test_pretrained.py --image path/to/image.jpg
 
 ### Project Structure
 
+The app follows MVC with a service layer: **Views** (`screens/`, `widgets/`)
+render state and navigate; **Controllers** (`controllers/`) orchestrate a
+use case; **Services** do one job each (camera, inference, auth, storage);
+**Models** (`models/`) are plain Dart data with no Flutter imports.
+
 ```
 vibelens/
 ├── lib/
-│   ├── main.dart                 # App entry point
+│   ├── main.dart
 │   ├── core/
-│   │   ├── constants.dart        # App-wide constants
-│   │   ├── theme.dart            # Material Design 3 theme
-│   │   └── utils/
-│   │       └── logger.dart       # Logging utility
-│   ├── screens/
-│   │   ├── splash_screen.dart
-│   │   ├── camera_screen.dart    # Camera with mood capture
-│   │   ├── results_screen.dart   # Mood analysis results
-│   │   ├── playlist_screen.dart  # Spotify playlist display
-│   │   ├── history_screen.dart   # Mood history tracking
-│   │   ├── settings_screen.dart  # App preferences
-│   │   └── spotify_auth_screen.dart  # OAuth flow
+│   │   ├── constants.dart        # AppConstants (UI), ModelConfig, SpotifyApi
+│   │   ├── mood_style.dart       # UI extension on MoodLabel (colors, text)
+│   │   ├── theme.dart
+│   │   └── utils/logger.dart
+│   ├── models/                   # Plain data: MoodLabel/MoodResult, Playlist, MoodHistoryEntry
+│   ├── controllers/
+│   │   └── camera_screen_controller.dart  # capture -> infer -> cleanup
+│   ├── screens/                  # Views
 │   ├── services/
-│   │   ├── model_service.dart    # TFLite inference
-│   │   ├── camera_service.dart   # Camera handling
-│   │   ├── spotify_service.dart  # Spotify API
-│   │   └── history_service.dart  # Local history storage
-│   ├── models/
-│   │   ├── mood_result.dart      # Mood detection data
-│   │   ├── playlist.dart         # Spotify playlist data
-│   │   └── mood_history.dart     # History entry data
+│   │   ├── model_service.dart         # TFLite load + run + postprocess
+│   │   ├── image_preprocessor.dart    # decode/orient/resize (off UI isolate)
+│   │   ├── camera_service.dart
+│   │   ├── spotify_auth_service.dart  # PKCE URL + token exchange
+│   │   ├── spotify_service.dart       # token storage + Spotify API
+│   │   ├── settings_service.dart      # SharedPreferences
+│   │   └── history_service.dart
 │   └── widgets/
-│       └── animated_mood_background.dart  # Visual effects
-├── ml/
-│   ├── use_pretrained.py         # Download pre-trained model
-│   ├── test_pretrained.py        # Test model locally
-│   ├── colab_tflite_conversion.ipynb  # Convert to TFLite
-│   └── models/
-│       └── checkpoints/
-│           └── pretrained_mobilenet_mood.pth
-├── assets/
-│   └── models/
-│       └── vibelens_v1.tflite    # Deployed model (3-5MB)
-├── test/
-│   └── widget_test.dart          # 22 passing tests
-├── .github/
-│   └── workflows/
-│       ├── flutter-ci.yml        # CI pipeline
-│       └── release.yml           # Release builds
-├── android/                      # Android config
-├── ios/                          # iOS config
-├── .env.example                  # Environment template
-└── .env                          # Spotify credentials (gitignored)
+├── ml/build_model.py             # Keras MobileNetV2 -> .tflite
+├── assets/models/                # mood_classifier.tflite (generated, gitignored)
+├── test/widget_test.dart
+└── .github/workflows/            # CI + release
 ```
 
 ### Running Tests
 
 ```bash
-# Run all tests (22 tests)
+# Run all tests
 flutter test
 
 # Run with coverage
@@ -277,7 +265,7 @@ If you see "invalid argument: input element is double while tensor data type is 
 | Model size (TFLite) | 3-5MB | <15MB |
 | App size (APK release) | ~45MB | <60MB |
 | Test coverage | 22 tests | 50+ tests |
-| Mood accuracy | ~75% | >90% |
+| Mood accuracy | not measured (untrained head) | >90% |
 | History storage | 100 entries | 500+ entries |
 
 ## 🗺️ Roadmap
@@ -286,7 +274,7 @@ If you see "invalid argument: input element is double while tensor data type is 
 
 - [x] Flutter app scaffold
 - [x] Camera integration
-- [x] Pre-trained MobileNetV2
+- [x] MobileNetV2 backbone
 - [x] TFLite inference (uint8)
 - [x] Basic UI with mood display
 - [x] Unit tests (22 passing)

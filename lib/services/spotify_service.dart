@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../core/constants.dart';
 import '../models/mood_result.dart';
 import '../models/playlist.dart';
 
@@ -11,7 +12,7 @@ class SpotifyService {
   SpotifyService._internal();
 
   final _storage = const FlutterSecureStorage();
-  static const String baseUrl = 'https://api.spotify.com/v1';
+  static const String baseUrl = SpotifyApi.baseUrl;
 
   String? _accessToken;
   DateTime? _tokenExpiry;

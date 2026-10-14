@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/spotify_service.dart';
 import '../services/history_service.dart';
+import '../services/settings_service.dart';
 import '../core/theme.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -32,26 +32,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadSettings() async {
     setState(() => _isLoading = true);
 
-    final prefs = await SharedPreferences.getInstance();
+    final settings = await SettingsService.instance.load();
     final isConnected = await _spotifyService.isAuthenticated();
 
     if (mounted) {
       setState(() {
         _isSpotifyConnected = isConnected;
-        _enableHistory = prefs.getBool('enableHistory') ?? true;
-        _enableAnimations = prefs.getBool('enableAnimations') ?? true;
-        _playlistLength = prefs.getInt('playlistLength') ?? 20;
+        _enableHistory = settings.enableHistory;
+        _enableAnimations = settings.enableAnimations;
+        _playlistLength = settings.playlistLength;
         _isLoading = false;
       });
     }
   }
 
-  Future<void> _saveSetting(String key, dynamic value) async {
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> _saveSetting(String key, Object value) async {
+    final settings = SettingsService.instance;
     if (value is bool) {
-      await prefs.setBool(key, value);
+      await settings.setBool(key, value);
     } else if (value is int) {
-      await prefs.setInt(key, value);
+      await settings.setInt(key, value);
     }
   }
 
@@ -98,16 +98,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
           // Account Section
@@ -115,9 +111,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.music_note, color: Colors.green),
             title: const Text('Spotify'),
-            subtitle: Text(
-              _isSpotifyConnected ? 'Connected' : 'Not connected',
-            ),
+            subtitle: Text(_isSpotifyConnected ? 'Connected' : 'Not connected'),
             trailing: _isSpotifyConnected
                 ? TextButton(
                     onPressed: _disconnectSpotify,
@@ -178,9 +172,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 context: context,
                 builder: (context) => AlertDialog(
                   title: const Text('Clear History'),
-                  content: const Text(
-                    'Are you sure? This cannot be undone.',
-                  ),
+                  content: const Text('Are you sure? This cannot be undone.'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
